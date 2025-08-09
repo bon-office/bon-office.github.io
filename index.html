@@ -3342,10 +3342,8 @@
         let activeFilters = new Set(['all']);
         let editMode = false;
         let currentRoom = null;
-        
-        // Supabase integration variables
-        let supabase = null;
-        let realtimeChannel = null;
+
+        // supabase and realtimeChannel are declared above
         let selectedDate = new Date().toISOString().split('T')[0];
         let svgLoaded = false;
 
