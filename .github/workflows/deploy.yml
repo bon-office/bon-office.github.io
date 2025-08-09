@@ -1,0 +1,64 @@
+# .github/workflows/deploy.yml
+# Simple deployment workflow for GitHub Pages with Supabase secrets injection
+
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches: [ main, master ]  # Adjust to your default branch
+  workflow_dispatch:  # Allow manual triggering
+
+# Sets permissions for the GITHUB_TOKEN
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Allow only one concurrent deployment
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v4
+
+      - name: Create config.js with Supabase credentials
+        run: |
+          echo "// Auto-generated configuration file - DO NOT EDIT" > config.js
+          echo "// Generated on: $(date)" >> config.js
+          echo "" >> config.js
+          echo "window.SUPABASE_CONFIG = {" >> config.js
+          echo "    url: '${{ secrets.SUPABASE_URL }}'," >> config.js
+          echo "    anonKey: '${{ secrets.SUPABASE_ANON_KEY }}'" >> config.js
+          echo "};" >> config.js
+          echo "" >> config.js
+          echo "console.log('Supabase configuration loaded successfully');" >> config.js
+
+      - name: Create _site directory and copy files
+        run: |
+          mkdir -p _site
+          cp *.html _site/ 2>/dev/null || cp index.html _site/ || echo "No HTML files found"
+          cp config.js _site/
+          cp *.txt _site/ 2>/dev/null || echo "No layout files found"
+          cp *.css _site/ 2>/dev/null || echo "No CSS files found"
+          cp *.js _site/ 2>/dev/null || echo "No additional JS files found"
+          ls -la _site/
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: ./_site
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
