@@ -3033,7 +3033,6 @@
         let supabase = null;
 
         let sidebarCollapsed = window.innerWidth <= 1024; // Collapsed by default on mobile
-        let autocompleteData = [];
 
         // Color mapping for different roles
         const roleColors = {
@@ -3048,17 +3047,7 @@
             'vacant': '#f9fafb'
         };
 
-        // Initialize sidebar state on load
-        document.addEventListener('DOMContentLoaded', function() {
-            // Set initial sidebar state
-            if (sidebarCollapsed) {
-                document.getElementById('sidebar').classList.add('collapsed');
-                document.getElementById('toggleIcon').textContent = '▶';
-            }
-            
-            // Update on window resize
-            window.addEventListener('resize', handleWindowResize);
-        });
+
 
         // Initialize the application
         document.addEventListener('DOMContentLoaded', function() {
@@ -3086,104 +3075,27 @@
             setupAutoSave();
             
             // Handle window resize for responsive behavior
-            window.addEventListener('resize', handleWindowResize);
-            
-            // Initialize with collapsed sidebar on mobile
-            if (window.innerWidth <= 1024) {
-                const sidebar = document.getElementById('sidebar');
-                const toggleIcon = document.getElementById('toggleIcon');
-                if (!sidebarCollapsed) {
+            window.addEventListener('resize', function() {
+                // Simplified resize handler - no sidebar functionality for now
+                if (window.innerWidth <= 1024) {
                     sidebarCollapsed = true;
-                    sidebar.classList.add('collapsed');
-                    toggleIcon.textContent = '▶';
+                } else {
+                    const savedState = localStorage.getItem('sidebarCollapsed');
+                    if (savedState !== null) {
+                        sidebarCollapsed = savedState === 'true';
+                    }
                 }
+            });
+            
+            // Initialize with collapsed sidebar on mobile (no DOM manipulation)
+            if (window.innerWidth <= 1024) {
+                sidebarCollapsed = true;
             }
         });
 
-        // Toggle sidebar function
-        function toggleSidebar() {
-            const sidebar = document.getElementById('sidebar');
-            const toggleIcon = document.getElementById('toggleIcon');
-            
-            sidebarCollapsed = !sidebarCollapsed;
-            
-            if (sidebarCollapsed) {
-                sidebar.classList.add('collapsed');
-                toggleIcon.textContent = '▶';
-            } else {
-                sidebar.classList.remove('collapsed');
-                toggleIcon.textContent = '▼';
-            }
-            
-            // Save preference to localStorage
-            localStorage.setItem('sidebarCollapsed', sidebarCollapsed);
-        }
 
-        // Handle window resize
-        function handleWindowResize() {
-            const sidebar = document.getElementById('sidebar');
-            const toggleIcon = document.getElementById('toggleIcon');
-            
-            // Auto-collapse on mobile, but respect user preference on desktop
-            if (window.innerWidth <= 1024) {
-                if (!sidebarCollapsed) {
-                    sidebarCollapsed = true;
-                    sidebar.classList.add('collapsed');
-                    toggleIcon.textContent = '▶';
-                }
-            } else {
-                // Restore user preference on desktop
-                const savedState = localStorage.getItem('sidebarCollapsed');
-                if (savedState !== null) {
-                    sidebarCollapsed = savedState === 'true';
-                    if (sidebarCollapsed) {
-                        sidebar.classList.add('collapsed');
-                        toggleIcon.textContent = '▶';
-                    } else {
-                        sidebar.classList.remove('collapsed');
-                        toggleIcon.textContent = '▼';
-                    }
-                }
-            }
-        }
 
-        // Enhanced search with autocomplete
-        function setupSearchAutocomplete() {
-            const searchInput = document.getElementById('searchInput');
-            const autocompleteContainer = document.getElementById('searchAutocomplete');
-            
-            searchInput.addEventListener('input', function(e) {
-                const query = e.target.value.trim().toLowerCase();
-                searchTerm = query;
-                
-                if (query.length >= 2) {
-                    showAutocomplete(query);
-                } else {
-                    hideAutocomplete();
-                    filterAndDisplayPeople();
-                    clearHighlights();
-                }
-            });
-            
-            searchInput.addEventListener('blur', function() {
-                // Delay hiding to allow clicking on autocomplete items
-                setTimeout(() => hideAutocomplete(), 150);
-            });
-            
-            searchInput.addEventListener('focus', function() {
-                const query = this.value.trim().toLowerCase();
-                if (query.length >= 2) {
-                    showAutocomplete(query);
-                }
-            });
-            
-            // Close autocomplete when clicking outside
-            document.addEventListener('click', function(e) {
-                if (!e.target.closest('.search-container')) {
-                    hideAutocomplete();
-                }
-            });
-        }
+
 
         // Initialize Supabase connection
         function initializeSupabase() {
@@ -3961,359 +3873,32 @@
             });
         }
 
-        // Initialize sidebar state on load
-        document.addEventListener('DOMContentLoaded', function() {
-            // Set initial sidebar state
-            if (sidebarCollapsed) {
-                document.getElementById('sidebar').classList.add('collapsed');
-                document.getElementById('toggleIcon').textContent = '▶';
-            }
-            
-            // Update on window resize
-            window.addEventListener('resize', handleWindowResize);
-        });
 
-        // Toggle sidebar function
-        function toggleSidebar() {
-            const sidebar = document.getElementById('sidebar');
-            const toggleIcon = document.getElementById('toggleIcon');
-            
-            sidebarCollapsed = !sidebarCollapsed;
-            
-            if (sidebarCollapsed) {
-                sidebar.classList.add('collapsed');
-                toggleIcon.textContent = '▶';
-            } else {
-                sidebar.classList.remove('collapsed');
-                toggleIcon.textContent = '▼';
-            }
-            
-            // Save preference to localStorage
-            localStorage.setItem('sidebarCollapsed', sidebarCollapsed);
-        }
 
-        // Handle window resize
-        function handleWindowResize() {
-            const sidebar = document.getElementById('sidebar');
-            const toggleIcon = document.getElementById('toggleIcon');
-            
-            // Auto-collapse on mobile, but respect user preference on desktop
-            if (window.innerWidth <= 1024) {
-                if (!sidebarCollapsed) {
-                    sidebarCollapsed = true;
-                    sidebar.classList.add('collapsed');
-                    toggleIcon.textContent = '▶';
-                }
-            } else {
-                // Restore user preference on desktop
-                const savedState = localStorage.getItem('sidebarCollapsed');
-                if (savedState !== null) {
-                    sidebarCollapsed = savedState === 'true';
-                    if (sidebarCollapsed) {
-                        sidebar.classList.add('collapsed');
-                        toggleIcon.textContent = '▶';
-                    } else {
-                        sidebar.classList.remove('collapsed');
-                        toggleIcon.textContent = '▼';
-                    }
-                }
-            }
-        }
 
-        // Enhanced search with autocomplete
-        function setupSearchAutocomplete() {
-            const searchInput = document.getElementById('searchInput');
-            const autocompleteContainer = document.getElementById('searchAutocomplete');
-            
-            searchInput.addEventListener('input', function(e) {
-                const query = e.target.value.trim().toLowerCase();
-                searchTerm = query;
-                
-                if (query.length >= 2) {
-                    showAutocomplete(query);
-                } else {
-                    hideAutocomplete();
-                    filterAndDisplayPeople();
-                    clearHighlights();
-                }
-            });
-            
-            searchInput.addEventListener('blur', function() {
-                // Delay hiding to allow clicking on autocomplete items
-                setTimeout(() => hideAutocomplete(), 150);
-            });
-            
-            searchInput.addEventListener('focus', function() {
-                const query = this.value.trim().toLowerCase();
-                if (query.length >= 2) {
-                    showAutocomplete(query);
-                }
-            });
-            
-            // Close autocomplete when clicking outside
-            document.addEventListener('click', function(e) {
-                if (!e.target.closest('.search-container')) {
-                    hideAutocomplete();
-                }
-            });
-        }
 
-        // Show autocomplete suggestions
-        function showAutocomplete(query) {
-            const autocompleteContainer = document.getElementById('searchAutocomplete');
-            
-            // Filter suggestions
-            const suggestions = allPeople.filter(person => 
-                person.name.toLowerCase().includes(query) ||
-                person.role.toLowerCase().includes(query) ||
-                person.roomName.toLowerCase().includes(query) ||
-                (person.department && person.department.toLowerCase().includes(query))
-            ).slice(0, 8); // Limit to 8 suggestions
-            
-            if (suggestions.length === 0) {
-                hideAutocomplete();
-                filterAndDisplayPeople();
-                return;
-            }
-            
-            // Generate suggestions HTML
-            const suggestionsHTML = suggestions.map(person => `
-                <div class="autocomplete-item" onclick="selectAutocompleteItem('${person.name}', '${person.roomId}')">
-                    <div class="autocomplete-name">${highlightMatch(person.name, query)}</div>
-                    <div class="autocomplete-details">
-                        <span style="color: ${roleColors[person.role]}">${person.role.charAt(0).toUpperCase() + person.role.slice(1)}</span>
-                        • ${person.roomName}
-                        ${person.department ? ` • ${person.department}` : ''}
-                    </div>
-                </div>
-            `).join('');
-            
-            autocompleteContainer.innerHTML = suggestionsHTML;
-            autocompleteContainer.classList.add('show');
-            
-            // Also update the main list and highlights
-            filterAndDisplayPeople();
-            highlightSearchResults();
-        }
 
-        // Hide autocomplete
-        function hideAutocomplete() {
-            const autocompleteContainer = document.getElementById('searchAutocomplete');
-            autocompleteContainer.classList.remove('show');
-        }
 
-        // Select autocomplete item
-        function selectAutocompleteItem(name, roomId) {
-            const searchInput = document.getElementById('searchInput');
-            searchInput.value = name;
-            searchTerm = name.toLowerCase();
-            
-            hideAutocomplete();
-            filterAndDisplayPeople();
-            highlightRoom(roomId);
-            
-            // Show sidebar if it's collapsed on mobile
-            if (window.innerWidth <= 1024 && sidebarCollapsed) {
-                toggleSidebar();
-            }
-        }
 
-        // Highlight matching text in autocomplete
-        function highlightMatch(text, query) {
-            const regex = new RegExp(`(${query})`, 'gi');
-            return text.replace(regex, '<strong>$1</strong>');
-        }
 
-        // Enhanced display people list with count
-        function displayPeopleList() {
-            const listContainer = document.getElementById('personList');
-            const countElement = document.getElementById('occupantCount');
-            
-            // Update count
-            countElement.textContent = filteredPeople.length;
-            
-            if (filteredPeople.length === 0) {
-                listContainer.innerHTML = `
-                    <div class="person-item">
-                        <div class="person-name">No occupants found</div>
-                        <div class="person-details">${isEditMode ? 'Click on rooms to add people' : 'Try different filters or search terms'}</div>
-                    </div>
-                `;
-                return;
-            }
-            
-            listContainer.innerHTML = filteredPeople.map(person => `
-                <div class="person-item" data-room="${person.roomId}" onclick="selectPersonFromList('${person.roomId}', '${person.name}')">
-                    <div class="person-name">${person.name}</div>
-                    <div class="person-details">
-                        <span style="color: ${roleColors[person.role]}">${person.role.charAt(0).toUpperCase() + person.role.slice(1)}</span>
-                        • ${person.roomName}
-                        ${person.department ? ` • ${person.department}` : ''}
-                        ${person.email ? ` • ${person.email}` : ''}
-                    </div>
-                </div>
-            `).join('');
-        }
 
-        // Enhanced person selection from list
-        function selectPersonFromList(roomId, personName) {
-            highlightRoom(roomId);
-            
-            // Update search field
-            const searchInput = document.getElementById('searchInput');
-            searchInput.value = personName;
-            searchTerm = personName.toLowerCase();
-            
-            // Re-filter to show only this person
-            filterAndDisplayPeople();
-            
-            // Show tooltip for the room
-            const workspace = document.getElementById(roomId);
-            if (workspace) {
-                const event = { target: workspace };
-                showTooltip(event, workspace);
-                
-                // Hide tooltip after 3 seconds
-                setTimeout(() => hideTooltip(), 3000);
-            }
-        }
 
-        // Clear search and highlights
-        function clearSearch() {
-            const searchInput = document.getElementById('searchInput');
-            searchInput.value = '';
-            searchTerm = '';
-            hideAutocomplete();
-            filterAndDisplayPeople();
-            clearHighlights();
-        }
 
-        // Clear all highlights
-        function clearHighlights() {
-            document.querySelectorAll('.workspace').forEach(ws => {
-                ws.classList.remove('highlighted');
-            });
-        }
 
-        // Enhanced process occupancy data with autocomplete updates
-        function processOccupancyData() {
-            // Extract all people from occupancy data
-            allPeople = [];
-            
-            Object.entries(occupancyData).forEach(([roomId, room]) => {
-                if (room.occupants) {
-                    room.occupants.forEach(person => {
-                        allPeople.push({
-                            ...person,
-                            roomId: roomId,
-                            roomName: room.name || roomId
-                        });
-                    });
-                }
-            });
-            
-            // Update autocomplete data
-            autocompleteData = [...allPeople];
-            
-            // Update display
-            updateWorkspaceColors();
-            filterAndDisplayPeople();
-            updateOccupancyIndicators();
-        }
 
-        // Enhanced setup event listeners
-        function setupEventListeners() {
-            // Date picker
-            document.getElementById('datePicker').addEventListener('change', function(e) {
-                selectedDate = e.target.value;
-                loadOccupancyData();
-            });
-            
-            // Setup search autocomplete
-            setupSearchAutocomplete();
-            
-            // Category filters
-            document.querySelectorAll('.filter-btn').forEach(btn => {
-                btn.addEventListener('click', function() {
-                    // Update active filter
-                    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
-                    this.classList.add('active');
-                    
-                    currentFilter = this.dataset.category;
-                    filterAndDisplayPeople();
-                    
-                    // Clear search when changing filters
-                    const searchInput = document.getElementById('searchInput');
-                    if (searchInput.value) {
-                        clearSearch();
-                    }
-                });
-            });
-            
-            // SVG workspace interactions
-            setupWorkspaceInteractions();
-            
-            // Escape key to clear search
-            document.addEventListener('keydown', function(e) {
-                if (e.key === 'Escape') {
-                    clearSearch();
-                    closeWorkspaceModal();
-                    hideAutocomplete();
-                }
-            });
-        }
 
-        // Enhanced notification system with better positioning
-        function showNotification(message, type = 'success') {
-            // Remove existing notification
-            const existing = document.querySelector('.notification');
-            if (existing) existing.remove();
-            
-            const notification = document.createElement('div');
-            notification.className = `notification ${type}`;
-            notification.textContent = message;
-            notification.style.cssText = `
-                position: fixed;
-                top: 80px;
-                right: 20px;
-                padding: 12px 20px;
-                background: ${type === 'error' ? '#ef4444' : type === 'warning' ? '#f59e0b' : '#10b981'};
-                color: white;
-                border-radius: 8px;
-                z-index: 10000;
-                animation: slideIn 0.3s ease;
-                box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-                max-width: 300px;
-                word-wrap: break-word;
-            `;
-            
-            document.body.appendChild(notification);
-            
-            setTimeout(() => {
-                notification.style.animation = 'slideOut 0.3s ease';
-                setTimeout(() => notification.remove(), 300);
-            }, 3000);
-        }
 
-        // Initialize sidebar state from localStorage
+
+        // Initialize sidebar state from localStorage (simplified)
         function initializeSidebarState() {
+            // Since we don't have sidebar toggle functionality in this version,
+            // this function is simplified to avoid errors
             const savedState = localStorage.getItem('sidebarCollapsed');
             
             if (window.innerWidth > 1024 && savedState !== null) {
                 sidebarCollapsed = savedState === 'true';
             } else if (window.innerWidth <= 1024) {
                 sidebarCollapsed = true;
-            }
-            
-            const sidebar = document.getElementById('sidebar');
-            const toggleIcon = document.getElementById('toggleIcon');
-            
-            if (sidebarCollapsed) {
-                sidebar.classList.add('collapsed');
-                toggleIcon.textContent = '▶';
-            } else {
-                sidebar.classList.remove('collapsed');
-                toggleIcon.textContent = '▼';
             }
         }
 
