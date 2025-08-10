@@ -62,31 +62,17 @@
             flex-wrap: wrap;
         }
 
-        .search-box {
-            position: relative;
+        .date-group {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.25rem;
         }
 
-        .search-input {
-            padding: 0.5rem 2.5rem 0.5rem 1rem;
-            border: 1px solid #d1d5db;
-            border-radius: 8px;
-            font-size: 0.875rem;
-            width: 200px;
-            outline: none;
-            transition: border-color 0.2s;
-        }
-
-        .search-input:focus {
-            border-color: #3b82f6;
-            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
-        }
-
-        .search-icon {
-            position: absolute;
-            right: 0.75rem;
-            top: 50%;
-            transform: translateY(-50%);
+        .date-label {
+            font-size: 0.75rem;
             color: #6b7280;
+            text-align: center;
         }
 
         .date-picker {
@@ -103,24 +89,24 @@
             box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
         }
 
-        .edit-btn {
+        .admin-btn {
             padding: 0.5rem 1rem;
-            background: #f3f4f6;
-            border: 1px solid #d1d5db;
+            background: #dc2626;
+            color: white;
+            border: 1px solid #dc2626;
             border-radius: 8px;
             font-size: 0.875rem;
             cursor: pointer;
             transition: all 0.2s;
         }
 
-        .edit-btn:hover {
-            background: #e5e7eb;
+        .admin-btn:hover {
+            background: #b91c1c;
         }
 
-        .edit-btn.active {
-            background: #3b82f6;
-            color: white;
-            border-color: #3b82f6;
+        .admin-btn.active {
+            background: #7f1d1d;
+            border-color: #7f1d1d;
         }
 
         .legend {
@@ -155,9 +141,6 @@
             max-width: 1600px;
             margin: 0 auto;
             padding: 2rem;
-            display: grid;
-            grid-template-columns: 1fr 300px;
-            gap: 2rem;
         }
 
         .svg-container {
@@ -169,6 +152,7 @@
             justify-content: center;
             overflow: auto;
             position: relative;
+            width: 100%;
         }
 
         #officePlan {
@@ -184,85 +168,6 @@
             padding: 4rem;
             color: #6b7280;
             font-style: italic;
-        }
-
-        .sidebar {
-            background: white;
-            border-radius: 12px;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-            padding: 1.5rem;
-            height: fit-content;
-            max-height: 80vh;
-            overflow-y: auto;
-        }
-
-        .sidebar h3 {
-            margin-bottom: 1rem;
-            font-size: 1.125rem;
-            font-weight: 600;
-            color: #1f2937;
-        }
-
-        .category-filters {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 0.5rem;
-            margin-bottom: 1rem;
-            padding-bottom: 1rem;
-            border-bottom: 1px solid #e5e7eb;
-        }
-
-        .filter-btn {
-            padding: 0.25rem 0.75rem;
-            background: #f3f4f6;
-            border: 1px solid #d1d5db;
-            border-radius: 6px;
-            font-size: 0.75rem;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-
-        .filter-btn.active {
-            background: #3b82f6;
-            color: white;
-            border-color: #3b82f6;
-        }
-
-        .person-list {
-            display: flex;
-            flex-direction: column;
-            gap: 0.5rem;
-        }
-
-        .person-item {
-            padding: 0.75rem;
-            background: #f9fafb;
-            border: 1px solid #e5e7eb;
-            border-radius: 8px;
-            font-size: 0.875rem;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-
-        .person-item:hover {
-            background: #f3f4f6;
-            border-color: #d1d5db;
-        }
-
-        .person-item.highlighted {
-            background: #eff6ff;
-            border-color: #3b82f6;
-        }
-
-        .person-name {
-            font-weight: 600;
-            color: #1f2937;
-        }
-
-        .person-details {
-            font-size: 0.75rem;
-            color: #6b7280;
-            margin-top: 0.25rem;
         }
 
         /* Workspace styles */
@@ -285,6 +190,13 @@
         .workspace.vacant {
             fill: #f9fafb;
             stroke: #d1d5db;
+        }
+
+        .workspace.disabled {
+            fill: #e5e7eb;
+            stroke: #9ca3af;
+            opacity: 0.6;
+            cursor: not-allowed;
         }
 
         .workspace.highlighted {
@@ -481,6 +393,43 @@
             background: #fee2e2;
         }
 
+        .admin-options {
+            display: none;
+            border-top: 1px solid #e5e7eb;
+            padding-top: 1rem;
+            margin-top: 1rem;
+        }
+
+        .admin-options.show {
+            display: block;
+        }
+
+        .admin-option-btn {
+            display: block;
+            width: 100%;
+            padding: 0.75rem;
+            margin-bottom: 0.5rem;
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .admin-option-btn:hover {
+            background: #f1f5f9;
+        }
+
+        .admin-option-btn.danger {
+            background: #fef2f2;
+            color: #dc2626;
+            border-color: #fecaca;
+        }
+
+        .admin-option-btn.danger:hover {
+            background: #fee2e2;
+        }
+
         .modal-buttons {
             display: flex;
             gap: 0.75rem;
@@ -527,13 +476,18 @@
 
         .time-limited-fields {
             display: none;
-            grid-template-columns: 1fr 1fr;
-            gap: 1rem;
             margin-top: 0.5rem;
         }
 
         .time-limited-fields.show {
+            display: block;
+        }
+
+        .date-row {
             display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
         }
 
         .error-message {
@@ -554,18 +508,6 @@
             margin: 1rem 0;
         }
 
-        @media (max-width: 1200px) {
-            .main-container {
-                grid-template-columns: 1fr;
-                grid-template-rows: auto 1fr;
-            }
-            
-            .sidebar {
-                order: -1;
-                max-height: 300px;
-            }
-        }
-
         @media (max-width: 768px) {
             .header-content {
                 flex-direction: column;
@@ -574,10 +516,6 @@
 
             .controls {
                 justify-content: center;
-            }
-
-            .search-input {
-                width: 150px;
             }
 
             .legend-content {
@@ -592,91 +530,30 @@
             .svg-container {
                 padding: 1rem;
             }
+        }
 
-            .connection-status {
-                display: flex;
-                align-items: center;
-                gap: 0.5rem;
-                font-size: 0.875rem;
-                padding: 0.25rem 0.75rem;
-                border-radius: 20px;
-                margin-right: 1rem;
-            }
-
-            .connection-status.connected {
-                background: #dcfce7;
-                color: #166534;
-            }
-
-            .connection-status.disconnected {
-                background: #fee2e2;
-                color: #991b1b;
-            }
-
-            .connection-status.connecting {
-                background: #fef3c7;
-                color: #92400e;
-            }
-
-            .status-dot {
-                width: 8px;
-                height: 8px;
-                border-radius: 50%;
-                animation: pulse 2s infinite;
-            }
-
-            .status-dot.connected {
-                background: #22c55e;
-            }
-
-            .status-dot.disconnected {
-                background: #ef4444;
-            }
-
-            .status-dot.connecting {
-                background: #f59e0b;
-            }
-
-            .sync-indicator {
-                position: absolute;
-                top: 1rem;
-                right: 1rem;
-                padding: 0.5rem;
-                background: rgba(59, 130, 246, 0.1);
-                border: 1px solid #3b82f6;
-                border-radius: 8px;
-                font-size: 0.75rem;
-                color: #1e40af;
-                opacity: 0;
-                transition: opacity 0.3s;
-            }
-
-            .sync-indicator.show {
-                opacity: 1;
-            }  
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        
+        @keyframes slideOut {
+            from { transform: translateX(0); opacity: 1; }
+            to { transform: translateX(100%); opacity: 0; }
         }
     </style>
 </head>
 <body>
     <!-- Header -->
     <div class="header">
-    <div class="header-content">
-        <h1 class="title">BON offices, AlbaNova 2nd floor</h1>
-        <div style="display: flex; align-items: center;">
-            <div class="connection-status" id="connectionStatus">
-                <div class="status-dot"></div>
-                <span>Connecting...</span>
-            </div>
+        <div class="header-content">
+            <h1 class="title">BON offices, AlbaNova 2nd floor</h1>
             <div class="controls">
-                <div class="search-box">
-                    <input type="text" class="search-input" id="searchInput" placeholder="Search person or room...">
-                    <span class="search-icon">🔍</span>
+                <div class="date-group">
+                    <label class="date-label">Occupancy at future date</label>
+                    <input type="date" class="date-picker" id="datePicker" title="View occupancy on this date">
                 </div>
-                <input type="date" class="date-picker" id="datePicker" title="View occupancy on this date">
-                <button class="edit-btn" id="editBtn" onclick="toggleEditMode()">Edit</button>
-                <button class="edit-btn" onclick="exportData()">Export</button>
-                <button class="edit-btn" onclick="importData()">Import</button>
-                <input type="file" id="fileInput" accept=".json" style="display: none;" onchange="handleFileImport(event)">
+                <button class="admin-btn" id="adminBtn" onclick="toggleAdminMode()">Admin</button>
             </div>
         </div>
     </div>
@@ -689,16 +566,12 @@
                 <span>Faculty</span>
             </div>
             <div class="legend-item">
-                <div class="legend-color" style="background-color: #2563eb;"></div>
-                <span>PhD Student</span>
-            </div>
-            <div class="legend-item">
                 <div class="legend-color" style="background-color: #ea580c;"></div>
                 <span>Researcher</span>
             </div>
             <div class="legend-item">
-                <div class="legend-color" style="background-color: #7c3aed;"></div>
-                <span>Visitor</span>
+                <div class="legend-color" style="background-color: #2563eb;"></div>
+                <span>PhD Student</span>
             </div>
             <div class="legend-item">
                 <div class="legend-color" style="background-color: #059669;"></div>
@@ -713,18 +586,22 @@
                 <span>Amanuensis</span>
             </div>
             <div class="legend-item">
-                <div class="legend-color" style="background-color: #06b6d4;"></div>
-                <span>Bachelor Student</span>
+                <div class="legend-color" style="background-color: #7c3aed;"></div>
+                <span>Visitor</span>
             </div>
             <div class="legend-item">
                 <div class="legend-color" style="background-color: #f9fafb;"></div>
                 <span>Vacant</span>
             </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background-color: #e5e7eb;"></div>
+                <span>Disabled</span>
+            </div>
         </div>
     </div>
 
     <!-- Main Content -->
-    <div class="main-container">
+ <div class="main-container">
         <div class="svg-container">
             <svg id="svgDrawing" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 163.51 203.01">
               <defs>
@@ -2996,58 +2873,28 @@
                 </g>
               </g>
             </svg>
-            <div class="sidebar">
-                <h3>Occupants</h3>
-                <div class="category-filters">
-                    <button class="filter-btn active" data-category="all">All</button>
-                    <button class="filter-btn" data-category="faculty">Faculty</button>
-                    <button class="filter-btn" data-category="phd">PhD</button>
-                    <button class="filter-btn" data-category="postdoc">Postdoc</button>
-                    <button class="filter-btn" data-category="researcher">Researcher</button>
-                    <button class="filter-btn" data-category="visitor">Visitor</button>
-                    <button class="filter-btn" data-category="master">Master</button>
-                    <button class="filter-btn" data-category="amanuensis">Amanuensis</button>
-                    <button class="filter-btn" data-category="bachelor">Bachelor</button>
-                </div>
-                <div id="personList" class="person-list">
-                    <div class="person-item">
-                        <div class="person-name">No occupants</div>
-                        <div class="person-details">Add people in edit mode</div>
-                    </div>
-                </div>
             </div>
         </div>
     </div>
 
     <script>
-        // JavaScript functions
-
         // Global variables
-        let isEditMode = false;
+        let isAdminMode = false;
         let occupancyData = {};
-        let allPeople = [];
-        let filteredPeople = [];
-        let currentFilter = 'all';
-        let searchTerm = '';
         let selectedDate = new Date().toISOString().split('T')[0];
         let supabase = null;
-
-        let sidebarCollapsed = window.innerWidth <= 1024; // Collapsed by default on mobile
 
         // Color mapping for different roles
         const roleColors = {
             'faculty': '#dc2626',
-            'phd': '#2563eb', 
             'researcher': '#ea580c',
-            'visitor': '#7c3aed',
+            'phd': '#2563eb', 
             'postdoc': '#059669',
             'master': '#f59e0b',
             'amanuensis': '#8b5cf6',
-            'bachelor': '#06b6d4',
+            'visitor': '#7c3aed',
             'vacant': '#f9fafb'
         };
-
-
 
         // Initialize the application
         document.addEventListener('DOMContentLoaded', function() {
@@ -3056,13 +2903,10 @@
             // Set today's date as default
             document.getElementById('datePicker').value = selectedDate;
             
-            // Initialize sidebar state
-            initializeSidebarState();
-            
             // Initialize Supabase
             initializeSupabase();
             
-            // Set up event listeners (now includes autocomplete)
+            // Set up event listeners
             setupEventListeners();
             
             // Load initial data
@@ -3073,46 +2917,20 @@
             
             // Auto-save setup
             setupAutoSave();
-            
-            // Handle window resize for responsive behavior
-            window.addEventListener('resize', function() {
-                // Simplified resize handler - no sidebar functionality for now
-                if (window.innerWidth <= 1024) {
-                    sidebarCollapsed = true;
-                } else {
-                    const savedState = localStorage.getItem('sidebarCollapsed');
-                    if (savedState !== null) {
-                        sidebarCollapsed = savedState === 'true';
-                    }
-                }
-            });
-            
-            // Initialize with collapsed sidebar on mobile (no DOM manipulation)
-            if (window.innerWidth <= 1024) {
-                sidebarCollapsed = true;
-            }
         });
-
-
-
-
 
         // Initialize Supabase connection
         function initializeSupabase() {
-            updateConnectionStatus('connecting');
-            
             try {
                 // Check if Supabase config is available
                 if (typeof window.SUPABASE_CONFIG === 'undefined') {
                     console.warn('Supabase configuration not found, running in offline mode');
-                    updateConnectionStatus('disconnected');
                     return;
                 }
                 
                 // Check if Supabase library is loaded
                 if (typeof window.supabase === 'undefined') {
                     console.warn('Supabase library not loaded, running in offline mode');
-                    updateConnectionStatus('disconnected');
                     return;
                 }
                 
@@ -3124,55 +2942,8 @@
                 
                 console.log('Supabase client initialized');
                 
-                // Test connection
-                testSupabaseConnection();
-                
             } catch (error) {
                 console.warn('Failed to initialize Supabase:', error);
-                updateConnectionStatus('disconnected');
-            }
-        }
-
-        // Test Supabase connection
-        async function testSupabaseConnection() {
-            try {
-                if (!supabase) {
-                    updateConnectionStatus('disconnected');
-                    return;
-                }
-                
-                // Simple connection test - just check if we can make a request
-                const { data, error } = await supabase.auth.getUser();
-                
-                // Even if we get an auth error, it means the connection works
-                console.log('Supabase connection test completed');
-                updateConnectionStatus('connected');
-                
-            } catch (error) {
-                console.warn('Supabase connection error:', error);
-                updateConnectionStatus('disconnected');
-            }
-        }
-
-        // Update connection status UI
-        function updateConnectionStatus(status) {
-            const statusEl = document.getElementById('connectionStatus');
-            const statusDot = statusEl.querySelector('.status-dot');
-            const statusText = statusEl.querySelector('span');
-            
-            statusEl.className = `connection-status ${status}`;
-            statusDot.className = `status-dot ${status}`;
-            
-            switch(status) {
-                case 'connected':
-                    statusText.textContent = 'Connected';
-                    break;
-                case 'disconnected':
-                    statusText.textContent = 'Offline Mode';
-                    break;
-                case 'connecting':
-                    statusText.textContent = 'Connecting...';
-                    break;
             }
         }
 
@@ -3182,25 +2953,6 @@
             document.getElementById('datePicker').addEventListener('change', function(e) {
                 selectedDate = e.target.value;
                 loadOccupancyData();
-            });
-            
-            // Search input
-            document.getElementById('searchInput').addEventListener('input', function(e) {
-                searchTerm = e.target.value.toLowerCase();
-                filterAndDisplayPeople();
-                highlightSearchResults();
-            });
-            
-            // Category filters
-            document.querySelectorAll('.filter-btn').forEach(btn => {
-                btn.addEventListener('click', function() {
-                    // Update active filter
-                    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
-                    this.classList.add('active');
-                    
-                    currentFilter = this.dataset.category;
-                    filterAndDisplayPeople();
-                });
             });
             
             // SVG workspace interactions
@@ -3213,9 +2965,15 @@
             
             workspaces.forEach(workspace => {
                 workspace.addEventListener('click', function(e) {
-                    if (isEditMode) {
-                        openWorkspaceModal(this.id);
+                    // Check if room is disabled and user is not admin
+                    const roomId = this.id;
+                    const room = occupancyData[roomId];
+                    
+                    if (room && room.disabled && !isAdminMode) {
+                        return; // Don't open modal for disabled rooms
                     }
+                    
+                    openWorkspaceModal(roomId);
                 });
                 
                 workspace.addEventListener('mouseenter', function(e) {
@@ -3228,21 +2986,28 @@
             });
         }
 
-        // Toggle edit mode
-        function toggleEditMode() {
-            isEditMode = !isEditMode;
-            const editBtn = document.getElementById('editBtn');
+        // Toggle admin mode
+        function toggleAdminMode() {
+            if (!isAdminMode) {
+                // Prompt for password
+                const password = prompt('Enter admin password:');
+                if (password !== 'password') {
+                    showNotification('Incorrect password', 'error');
+                    return;
+                }
+            }
             
-            if (isEditMode) {
-                editBtn.classList.add('active');
-                editBtn.textContent = 'Exit Edit';
-                document.body.style.cursor = 'pointer';
-                showNotification('Edit mode enabled - click on rooms to modify occupancy');
+            isAdminMode = !isAdminMode;
+            const adminBtn = document.getElementById('adminBtn');
+            
+            if (isAdminMode) {
+                adminBtn.classList.add('active');
+                adminBtn.textContent = 'Exit Admin';
+                showNotification('Admin mode enabled');
             } else {
-                editBtn.classList.remove('active');
-                editBtn.textContent = 'Edit';
-                document.body.style.cursor = 'default';
-                showNotification('Edit mode disabled');
+                adminBtn.classList.remove('active');
+                adminBtn.textContent = 'Admin';
+                showNotification('Admin mode disabled');
             }
             
             updateWorkspaceStyles();
@@ -3250,8 +3015,6 @@
 
         // Load occupancy data
         function loadOccupancyData() {
-            showSyncIndicator();
-            
             // Try to load from Supabase first, fallback to localStorage
             if (supabase) {
                 loadFromSupabase();
@@ -3281,7 +3044,6 @@
                 }
                 
                 processOccupancyData();
-                hideSyncIndicator();
                 
             } catch (error) {
                 console.warn('Supabase load error:', error);
@@ -3294,30 +3056,35 @@
             const stored = localStorage.getItem(`occupancy_${selectedDate}`);
             occupancyData = stored ? JSON.parse(stored) : {};
             processOccupancyData();
-            hideSyncIndicator();
         }
 
         // Process and display occupancy data
         function processOccupancyData() {
-            // Extract all people from occupancy data
-            allPeople = [];
+            updateWorkspaceColors();
+            updateOccupancyIndicators();
+            filterOccupantsByDate();
+        }
+
+        // Filter occupants by selected date for time-limited roles
+        function filterOccupantsByDate() {
+            const targetDate = new Date(selectedDate);
             
-            Object.entries(occupancyData).forEach(([roomId, room]) => {
-                if (room.occupants) {
-                    room.occupants.forEach(person => {
-                        allPeople.push({
-                            ...person,
-                            roomId: roomId,
-                            roomName: room.name || roomId
-                        });
+            Object.keys(occupancyData).forEach(roomId => {
+                const room = occupancyData[roomId];
+                if (room && room.occupants) {
+                    room.occupants = room.occupants.filter(person => {
+                        // For visitors and master students, check date range
+                        if (person.role === 'visitor' || person.role === 'master') {
+                            if (person.startDate && person.endDate) {
+                                const startDate = new Date(person.startDate);
+                                const endDate = new Date(person.endDate);
+                                return targetDate >= startDate && targetDate <= endDate;
+                            }
+                        }
+                        return true; // Keep all other roles
                     });
                 }
             });
-            
-            // Update display
-            updateWorkspaceColors();
-            filterAndDisplayPeople();
-            updateOccupancyIndicators();
         }
 
         // Update workspace colors based on occupancy
@@ -3328,16 +3095,20 @@
                 const roomId = workspace.id;
                 const room = occupancyData[roomId];
                 
-                if (room && room.occupants && room.occupants.length > 0) {
+                if (room && room.disabled) {
+                    workspace.style.fill = '#e5e7eb';
+                    workspace.classList.add('disabled');
+                    workspace.classList.remove('occupied', 'vacant');
+                } else if (room && room.occupants && room.occupants.length > 0) {
                     // Use the color of the first occupant's role
                     const primaryRole = room.occupants[0].role;
                     workspace.style.fill = roleColors[primaryRole] || roleColors.vacant;
                     workspace.classList.add('occupied');
-                    workspace.classList.remove('vacant');
+                    workspace.classList.remove('vacant', 'disabled');
                 } else {
                     workspace.style.fill = roleColors.vacant;
                     workspace.classList.add('vacant');
-                    workspace.classList.remove('occupied');
+                    workspace.classList.remove('occupied', 'disabled');
                 }
             });
         }
@@ -3363,90 +3134,6 @@
             });
         }
 
-        // Filter and display people in sidebar
-        function filterAndDisplayPeople() {
-            let filtered = [...allPeople];
-            
-            // Apply category filter
-            if (currentFilter !== 'all') {
-                filtered = filtered.filter(person => person.role === currentFilter);
-            }
-            
-            // Apply search filter
-            if (searchTerm) {
-                filtered = filtered.filter(person => 
-                    person.name.toLowerCase().includes(searchTerm) ||
-                    person.role.toLowerCase().includes(searchTerm) ||
-                    person.roomName.toLowerCase().includes(searchTerm)
-                );
-            }
-            
-            filteredPeople = filtered;
-            displayPeopleList();
-        }
-
-        // Display people list in sidebar
-        function displayPeopleList() {
-            const listContainer = document.getElementById('personList');
-            
-            if (filteredPeople.length === 0) {
-                listContainer.innerHTML = `
-                    <div class="person-item">
-                        <div class="person-name">No occupants found</div>
-                        <div class="person-details">${isEditMode ? 'Click on rooms to add people' : 'Try different filters'}</div>
-                    </div>
-                `;
-                return;
-            }
-            
-            listContainer.innerHTML = filteredPeople.map(person => `
-                <div class="person-item" data-room="${person.roomId}" onclick="highlightRoom('${person.roomId}')">
-                    <div class="person-name">${person.name}</div>
-                    <div class="person-details">
-                        <span style="color: ${roleColors[person.role]}">${person.role.charAt(0).toUpperCase() + person.role.slice(1)}</span>
-                        • ${person.roomName}
-                        ${person.department ? ` • ${person.department}` : ''}
-                    </div>
-                </div>
-            `).join('');
-        }
-
-        // Highlight room when person is clicked
-        function highlightRoom(roomId) {
-            // Clear previous highlights
-            document.querySelectorAll('.workspace').forEach(ws => {
-                ws.classList.remove('highlighted');
-            });
-            
-            // Highlight selected room
-            const room = document.getElementById(roomId);
-            if (room) {
-                room.classList.add('highlighted');
-                
-                // Remove highlight after 3 seconds
-                setTimeout(() => {
-                    room.classList.remove('highlighted');
-                }, 3000);
-            }
-        }
-
-        // Highlight search results
-        function highlightSearchResults() {
-            // Clear previous highlights
-            document.querySelectorAll('.workspace').forEach(ws => {
-                ws.classList.remove('highlighted');
-            });
-            
-            if (searchTerm && filteredPeople.length > 0) {
-                filteredPeople.forEach(person => {
-                    const room = document.getElementById(person.roomId);
-                    if (room) {
-                        room.classList.add('highlighted');
-                    }
-                });
-            }
-        }
-
         // Show/hide tooltip
         function showTooltip(event, workspace) {
             const tooltip = document.getElementById('tooltip') || createTooltip();
@@ -3455,18 +3142,25 @@
             
             let content = `<h4>${room?.name || roomId}</h4>`;
             
-            if (room && room.occupants && room.occupants.length > 0) {
-                content += room.occupants.map(person => `
-                    <p><strong>${person.name}</strong></p>
-                    <p>Role: ${person.role.charAt(0).toUpperCase() + person.role.slice(1)}</p>
-                    ${person.department ? `<p>Department: ${person.department}</p>` : ''}
-                    ${person.email ? `<p>Email: ${person.email}</p>` : ''}
-                `).join('');
+            if (room && room.disabled) {
+                content += '<p>Room disabled</p>';
+            } else if (room && room.occupants && room.occupants.length > 0) {
+                content += room.occupants.map(person => {
+                    let personInfo = `<p><strong>${person.name}</strong></p>`;
+                    personInfo += `<p>Role: ${person.role.charAt(0).toUpperCase() + person.role.slice(1)}</p>`;
+                    if (person.email) personInfo += `<p>Email: ${person.email}</p>`;
+                    if (person.pi) personInfo += `<p>PI: ${person.pi}</p>`;
+                    if (person.startDate && person.endDate) {
+                        personInfo += `<p>Period: ${person.startDate} to ${person.endDate}</p>`;
+                    }
+                    return personInfo;
+                }).join('');
             } else {
                 content += '<p>Vacant</p>';
             }
             
-            if (isEditMode) {
+            // Only show "Click to edit" if room is not disabled
+            if (!room || !room.disabled) {
                 content += '<p style="margin-top: 10px; font-style: italic;">Click to edit</p>';
             }
             
@@ -3502,11 +3196,20 @@
                 modal = createWorkspaceModal();
             }
             
-            const room = occupancyData[roomId] || { name: roomId, occupants: [] };
+            const room = occupancyData[roomId] || { name: roomId, occupants: [], disabled: false };
             
             // Populate modal with current data
             document.getElementById('modalRoomName').value = room.name || roomId;
             document.getElementById('modalRoomId').value = roomId;
+            
+            // Show/hide admin options
+            const adminOptions = document.getElementById('adminOptions');
+            if (isAdminMode) {
+                adminOptions.classList.add('show');
+                updateAdminOptions(room);
+            } else {
+                adminOptions.classList.remove('show');
+            }
             
             // Populate occupants list
             updateModalOccupantsList(room.occupants || []);
@@ -3523,8 +3226,12 @@
                         
                         <div class="form-group">
                             <label>Room Name:</label>
-                            <input type="text" id="modalRoomName" class="room-name-input" readonly>
+                            <input type="text" id="modalRoomName" class="room-name-input" ${!isAdminMode ? 'readonly' : ''}>
                             <input type="hidden" id="modalRoomId">
+                        </div>
+                        
+                        <div id="adminOptions" class="admin-options">
+                            <button id="toggleRoomBtn" class="admin-option-btn">Enable/Disable Room</button>
                         </div>
                         
                         <div class="form-group">
@@ -3539,21 +3246,32 @@
                         
                         <div class="form-group">
                             <label>Role:</label>
-                            <select id="newPersonRole">
+                            <select id="newPersonRole" onchange="toggleTimeLimitedFields()">
                                 <option value="faculty">Faculty</option>
-                                <option value="phd">PhD Student</option>
                                 <option value="researcher">Researcher</option>
-                                <option value="visitor">Visitor</option>
+                                <option value="phd">PhD Student</option>
                                 <option value="postdoc">Postdoc</option>
                                 <option value="master">Master Student</option>
                                 <option value="amanuensis">Amanuensis</option>
-                                <option value="bachelor">Bachelor Student</option>
+                                <option value="visitor">Visitor</option>
                             </select>
                         </div>
                         
-                        <div class="form-group">
-                            <label>Department (optional):</label>
-                            <input type="text" id="newPersonDepartment" placeholder="Department">
+                        <div id="timeLimitedFields" class="time-limited-fields">
+                            <div class="date-row">
+                                <div class="form-group">
+                                    <label>Start Date:</label>
+                                    <input type="date" id="newPersonStartDate">
+                                </div>
+                                <div class="form-group">
+                                    <label>End Date:</label>
+                                    <input type="date" id="newPersonEndDate">
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label>Principal Investigator:</label>
+                                <input type="text" id="newPersonPI" placeholder="PI Name">
+                            </div>
                         </div>
                         
                         <div class="form-group">
@@ -3571,7 +3289,46 @@
             `;
             
             document.body.insertAdjacentHTML('beforeend', modalHTML);
+            
+            // Set up admin option handlers
+            document.getElementById('toggleRoomBtn').addEventListener('click', function() {
+                const roomId = document.getElementById('modalRoomId').value;
+                const room = occupancyData[roomId] || {};
+                room.disabled = !room.disabled;
+                occupancyData[roomId] = room;
+                updateAdminOptions(room);
+                showNotification(room.disabled ? 'Room disabled' : 'Room enabled');
+            });
+            
             return document.getElementById('workspaceModal');
+        }
+
+        // Update admin options based on room state
+        function updateAdminOptions(room) {
+            const toggleBtn = document.getElementById('toggleRoomBtn');
+            if (room.disabled) {
+                toggleBtn.textContent = 'Enable Room';
+                toggleBtn.classList.remove('danger');
+            } else {
+                toggleBtn.textContent = 'Disable Room';
+                toggleBtn.classList.add('danger');
+            }
+            
+            // Make room name editable in admin mode
+            const roomNameInput = document.getElementById('modalRoomName');
+            roomNameInput.readOnly = !isAdminMode;
+        }
+
+        // Toggle time limited fields
+        function toggleTimeLimitedFields() {
+            const role = document.getElementById('newPersonRole').value;
+            const timeLimitedFields = document.getElementById('timeLimitedFields');
+            
+            if (role === 'visitor' || role === 'master') {
+                timeLimitedFields.classList.add('show');
+            } else {
+                timeLimitedFields.classList.remove('show');
+            }
         }
 
         // Update modal occupants list
@@ -3583,26 +3340,30 @@
                 return;
             }
             
-            listContainer.innerHTML = occupants.map((person, index) => `
-                <div class="occupant-item">
-                    <div class="occupant-info">
-                        <div class="occupant-name">${person.name}</div>
-                        <div class="occupant-details">
-                            ${person.role.charAt(0).toUpperCase() + person.role.slice(1)}
-                            ${person.department ? ` • ${person.department}` : ''}
-                            ${person.email ? ` • ${person.email}` : ''}
+            listContainer.innerHTML = occupants.map((person, index) => {
+                let details = person.role.charAt(0).toUpperCase() + person.role.slice(1);
+                if (person.email) details += ` • ${person.email}`;
+                if (person.pi) details += ` • PI: ${person.pi}`;
+                if (person.startDate && person.endDate) {
+                    details += ` • ${person.startDate} to ${person.endDate}`;
+                }
+                
+                return `
+                    <div class="occupant-item">
+                        <div class="occupant-info">
+                            <div class="occupant-name">${person.name}</div>
+                            <div class="occupant-details">${details}</div>
                         </div>
+                        <button class="remove-btn" onclick="removePersonFromRoom(${index})">Remove</button>
                     </div>
-                    <button class="remove-btn" onclick="removePersonFromRoom(${index})">Remove</button>
-                </div>
-            `).join('');
+                `;
+            }).join('');
         }
 
         // Add person to room
         function addPersonToRoom() {
             const name = document.getElementById('newPersonName').value.trim();
             const role = document.getElementById('newPersonRole').value;
-            const department = document.getElementById('newPersonDepartment').value.trim();
             const email = document.getElementById('newPersonEmail').value.trim();
             const roomId = document.getElementById('modalRoomId').value;
             
@@ -3615,14 +3376,35 @@
             if (!occupancyData[roomId]) {
                 occupancyData[roomId] = {
                     name: document.getElementById('modalRoomName').value,
-                    occupants: []
+                    occupants: [],
+                    disabled: false
                 };
             }
             
             // Add person
             const person = { name, role };
-            if (department) person.department = department;
             if (email) person.email = email;
+            
+            // Add time-limited fields for visitors and master students
+            if (role === 'visitor' || role === 'master') {
+                const startDate = document.getElementById('newPersonStartDate').value;
+                const endDate = document.getElementById('newPersonEndDate').value;
+                const pi = document.getElementById('newPersonPI').value.trim();
+                
+                if (!startDate || !endDate) {
+                    showNotification('Please provide start and end dates for this role', 'error');
+                    return;
+                }
+                
+                if (!pi) {
+                    showNotification('Please provide a Principal Investigator name', 'error');
+                    return;
+                }
+                
+                person.startDate = startDate;
+                person.endDate = endDate;
+                person.pi = pi;
+            }
             
             occupancyData[roomId].occupants.push(person);
             
@@ -3631,8 +3413,10 @@
             
             // Clear form
             document.getElementById('newPersonName').value = '';
-            document.getElementById('newPersonDepartment').value = '';
             document.getElementById('newPersonEmail').value = '';
+            document.getElementById('newPersonStartDate').value = '';
+            document.getElementById('newPersonEndDate').value = '';
+            document.getElementById('newPersonPI').value = '';
             
             showNotification('Person added successfully');
         }
@@ -3650,6 +3434,14 @@
 
         // Save room changes
         function saveRoomChanges() {
+            const roomId = document.getElementById('modalRoomId').value;
+            const roomName = document.getElementById('modalRoomName').value;
+            
+            // Update room name if in admin mode
+            if (isAdminMode && occupancyData[roomId]) {
+                occupancyData[roomId].name = roomName;
+            }
+            
             saveOccupancyData();
             processOccupancyData();
             closeWorkspaceModal();
@@ -3666,8 +3458,6 @@
 
         // Save occupancy data
         async function saveOccupancyData() {
-            showSyncIndicator();
-            
             try {
                 // Save to Supabase if available
                 if (supabase) {
@@ -3682,8 +3472,6 @@
                 saveToLocalStorage();
                 showNotification('Saved locally (offline mode)', 'warning');
             }
-            
-            hideSyncIndicator();
         }
 
         // Save to Supabase
@@ -3715,67 +3503,6 @@
             localStorage.setItem(`occupancy_${selectedDate}`, JSON.stringify(occupancyData));
         }
 
-        // Export data
-        function exportData() {
-            const dataToExport = {
-                date: selectedDate,
-                occupancy: occupancyData,
-                exported_at: new Date().toISOString()
-            };
-            
-            const blob = new Blob([JSON.stringify(dataToExport, null, 2)], {
-                type: 'application/json'
-            });
-            
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `office-occupancy-${selectedDate}.json`;
-            a.click();
-            
-            URL.revokeObjectURL(url);
-            showNotification('Data exported successfully');
-        }
-
-        // Import data
-        function importData() {
-            document.getElementById('fileInput').click();
-        }
-
-        // Handle file import
-        function handleFileImport(event) {
-            const file = event.target.files[0];
-            if (!file) return;
-            
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                try {
-                    const importedData = JSON.parse(e.target.result);
-                    
-                    if (importedData.occupancy) {
-                        occupancyData = importedData.occupancy;
-                        
-                        // Update date if included
-                        if (importedData.date) {
-                            selectedDate = importedData.date;
-                            document.getElementById('datePicker').value = selectedDate;
-                        }
-                        
-                        processOccupancyData();
-                        saveOccupancyData();
-                        showNotification('Data imported successfully');
-                    } else {
-                        showNotification('Invalid file format', 'error');
-                    }
-                } catch (error) {
-                    showNotification('Error reading file', 'error');
-                }
-            };
-            
-            reader.readAsText(file);
-            event.target.value = ''; // Clear input
-        }
-
         // Show notification
         function showNotification(message, type = 'success') {
             // Remove existing notification
@@ -3805,44 +3532,13 @@
             }, 3000);
         }
 
-        // Show/hide sync indicator
-        function showSyncIndicator() {
-            let indicator = document.querySelector('.sync-indicator');
-            if (!indicator) {
-                indicator = document.createElement('div');
-                indicator.className = 'sync-indicator';
-                indicator.textContent = 'Syncing...';
-                document.querySelector('.svg-container').appendChild(indicator);
-            }
-            indicator.classList.add('show');
-        }
-
-        function hideSyncIndicator() {
-            const indicator = document.querySelector('.sync-indicator');
-            if (indicator) {
-                indicator.classList.remove('show');
-            }
-        }
-
         // Setup keyboard shortcuts
         function setupKeyboardShortcuts() {
             document.addEventListener('keydown', function(e) {
-                // Ctrl/Cmd + E: Toggle Edit Mode
-                if ((e.ctrlKey || e.metaKey) && e.key === 'e') {
+                // Ctrl/Cmd + A: Toggle Admin Mode
+                if ((e.ctrlKey || e.metaKey) && e.key === 'a') {
                     e.preventDefault();
-                    toggleEditMode();
-                }
-                
-                // Ctrl/Cmd + S: Export Data
-                if ((e.ctrlKey || e.metaKey) && e.key === 's') {
-                    e.preventDefault();
-                    exportData();
-                }
-                
-                // Ctrl/Cmd + O: Import Data
-                if ((e.ctrlKey || e.metaKey) && e.key === 'o') {
-                    e.preventDefault();
-                    importData();
+                    toggleAdminMode();
                 }
                 
                 // Escape: Close modal
@@ -3855,68 +3551,19 @@
         // Setup auto-save
         function setupAutoSave() {
             setInterval(() => {
-                if (isEditMode && Object.keys(occupancyData).length > 0) {
+                if (Object.keys(occupancyData).length > 0) {
                     saveOccupancyData();
                 }
             }, 30000); // Auto-save every 30 seconds
         }
 
-        // Update workspace styles based on edit mode
+        // Update workspace styles based on admin mode
         function updateWorkspaceStyles() {
             const workspaces = document.querySelectorAll('[id^="ws"]');
             workspaces.forEach(workspace => {
-                if (isEditMode) {
-                    workspace.style.cursor = 'pointer';
-                } else {
-                    workspace.style.cursor = 'default';
-                }
+                workspace.style.cursor = 'pointer';
             });
         }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-        // Initialize sidebar state from localStorage (simplified)
-        function initializeSidebarState() {
-            // Since we don't have sidebar toggle functionality in this version,
-            // this function is simplified to avoid errors
-            const savedState = localStorage.getItem('sidebarCollapsed');
-            
-            if (window.innerWidth > 1024 && savedState !== null) {
-                sidebarCollapsed = savedState === 'true';
-            } else if (window.innerWidth <= 1024) {
-                sidebarCollapsed = true;
-            }
-        }
-
-        // Add CSS animations
-        const style = document.createElement('style');
-        style.textContent = `
-            @keyframes slideIn {
-                from { transform: translateX(100%); opacity: 0; }
-                to { transform: translateX(0); opacity: 1; }
-            }
-            
-            @keyframes slideOut {
-                from { transform: translateX(0); opacity: 1; }
-                to { transform: translateX(100%); opacity: 0; }
-            }
-        `;
-        document.head.appendChild(style);
-
     </script>
 </body>
 </html>
