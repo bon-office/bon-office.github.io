@@ -200,7 +200,7 @@
         }
 
         .workspace.disabled {
-            fill: #949699;
+            fill: #d8d8d8;
             stroke: #9ca3af;
             opacity: 0.6;
             cursor: not-allowed;
@@ -3241,7 +3241,7 @@
                 const room = displayData[roomId];
                 
                 if (room && room.disabled) {
-                    workspace.style.fill = '#949699';
+                    workspace.style.fill = '#d8d8d8';
                     workspace.classList.add('disabled');
                     workspace.classList.remove('occupied', 'vacant');
                 } else if (room && room.occupants && room.occupants.length > 0) {
