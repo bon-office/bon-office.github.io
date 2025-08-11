@@ -94,9 +94,9 @@
 
         .admin-btn {
             padding: 0.5rem 1rem;
-            background: #dc2626;
+            background: #ffb3ba;
             color: white;
-            border: 1px solid #dc2626;
+            border: 1px solid #ffb3ba;
             border-radius: 8px;
             font-size: 0.875rem;
             cursor: pointer;
@@ -207,7 +207,7 @@
         }
 
         .workspace.highlighted {
-            stroke: #dc2626;
+            stroke: #ffb3ba;
             stroke-width: 2;
             animation: pulse 1.5s infinite;
         }
@@ -270,7 +270,7 @@
         .tooltip h4 {
             margin: 0 0 0.5rem 0;
             font-weight: 600;
-            color: #60a5fa;
+            color: #fcfcfc;
         }
 
         .tooltip p {
@@ -388,7 +388,7 @@
         .remove-btn {
             padding: 0.25rem 0.5rem;
             background: #fef2f2;
-            color: #dc2626;
+            color: #ffb3ba;
             border: 1px solid #fecaca;
             border-radius: 4px;
             font-size: 0.75rem;
@@ -429,7 +429,7 @@
 
         .admin-option-btn.danger {
             background: #fef2f2;
-            color: #dc2626;
+            color: #ffb3ba;
             border-color: #fecaca;
         }
 
@@ -460,7 +460,7 @@
         }
 
         .btn-primary:hover {
-            background: #2563eb;
+            background: #bae1ff;
         }
 
         .btn-secondary {
@@ -478,7 +478,7 @@
         }
 
         .btn-danger:hover {
-            background: #dc2626;
+            background: #ffb3ba;
         }
 
         .time-limited-fields {
@@ -498,7 +498,7 @@
         }
 
         .error-message {
-            color: #dc2626;
+            color: #ffb3ba;
             background: #fef2f2;
             border: 1px solid #fecaca;
             border-radius: 8px;
@@ -507,7 +507,7 @@
         }
 
         .success-message {
-            color: #059669;
+            color: #baffc9;
             background: #f0fdf4;
             border: 1px solid #bbf7d0;
             border-radius: 8px;
@@ -518,7 +518,7 @@
     
         /* Enhance the incoming person cards */
         .incoming-person-card.starting-soon {
-            border-left: 4px solid #dc2626;
+            border-left: 4px solid #ffb3ba;
             background: linear-gradient(90deg, #fef2f2 0%, #f8fafc 100%);
         }
 
@@ -572,28 +572,28 @@
         }
 
         /* Better visual distinction for different roles in incoming people */
-        .incoming-person-details [style*="color: #dc2626"] {
+        .incoming-person-details [style*="color: #ffb3ba"] {
             background: rgba(220, 38, 38, 0.1);
             padding: 2px 6px;
             border-radius: 4px;
             display: inline-block;
         }
 
-        .incoming-person-details [style*="color: #ea580c"] {
+        .incoming-person-details [style*="color: #ffdfba"] {
             background: rgba(234, 88, 12, 0.1);
             padding: 2px 6px;
             border-radius: 4px;
             display: inline-block;
         }
 
-        .incoming-person-details [style*="color: #2563eb"] {
+        .incoming-person-details [style*="color: #bae1ff"] {
             background: rgba(37, 99, 235, 0.1);
             padding: 2px 6px;
             border-radius: 4px;
             display: inline-block;
         }
 
-        .incoming-person-details [style*="color: #7c3aed"] {
+        .incoming-person-details [style*="color: #eecbff"] {
             background: rgba(124, 58, 237, 0.1);
             padding: 2px 6px;
             border-radius: 4px;
@@ -687,27 +687,27 @@
     <div class="legend">
         <div class="legend-content">
             <div class="legend-item">
-                <div class="legend-color" style="background-color: #dc2626;"></div>
+                <div class="legend-color" style="background-color: #ffb3ba;"></div>
                 <span>Faculty</span>
             </div>
             <div class="legend-item">
-                <div class="legend-color" style="background-color: #ea580c;"></div>
+                <div class="legend-color" style="background-color: #ffdfba;"></div>
                 <span>Researcher</span>
             </div>
             <div class="legend-item">
-                <div class="legend-color" style="background-color: #2563eb;"></div>
+                <div class="legend-color" style="background-color: #bae1ff;"></div>
                 <span>PhD Student</span>
             </div>
             <div class="legend-item">
-                <div class="legend-color" style="background-color: #059669;"></div>
+                <div class="legend-color" style="background-color: #baffc9;"></div>
                 <span>Postdoc</span>
             </div>
             <div class="legend-item">
-                <div class="legend-color" style="background-color: #f59e0b;"></div>
+                <div class="legend-color" style="background-color: #ffffba;"></div>
                 <span>Master student</span>
             </div>
             <div class="legend-item">
-                <div class="legend-color" style="background-color: #7c3aed;"></div>
+                <div class="legend-color" style="background-color: #eecbff;"></div>
                 <span>Visitor</span>
             </div>
             <div class="legend-item">
@@ -3012,13 +3012,13 @@
 
         // Color mapping for different roles
         const roleColors = {
-            'faculty': '#dc2626',
-            'researcher': '#ea580c',
-            'phd': '#2563eb', 
-            'postdoc': '#059669',
-            'master': '#f59e0b',
-            'visitor': '#7c3aed',
-            'vacant': '#f9fafb'
+            'Faculty': '#ffb3ba',
+            'Researcher': '#ffdfba',
+            'PhD student': '#bae1ff', 
+            'Postdoc': '#baffc9',
+            'Master student': '#ffffba',
+            'Visitor': '#eecbff',
+            'Vacant': '#f9fafb'
         };
 
         // Initialize the application
@@ -3203,7 +3203,7 @@
                 if (room && room.occupants) {
                     const filteredOccupants = room.occupants.filter(person => {
                         // For visitors and master students, check date range
-                        if (person.role === 'visitor' || person.role === 'master') {
+                        if (person.role === 'Visitor' || person.role === 'Master student') {
                             if (person.startDate && person.endDate) {
                                 const targetDate = new Date(selectedDate);
                                 const startDate = new Date(person.startDate);
@@ -3285,9 +3285,7 @@
                 content += '<p>Room disabled</p>';
             } else if (room && room.occupants && room.occupants.length > 0) {
                 content += room.occupants.map(person => {
-                    let personInfo = `<p><strong>${person.name}</strong></p>`;
-                    personInfo += `<p>${person.role.charAt(0).toUpperCase() + person.role.slice(1)}</p>`;
-                    if (person.email) personInfo += `<p>Email: ${person.email}</p>`;
+                    let personInfo = `<p><strong>${person.name}</strong> (${person.role})</p>`;
                     if (person.pi) personInfo += `<p>PI: ${person.pi}</p>`;
                     if (person.startDate && person.endDate) {
                         personInfo += `<p>Period: ${person.startDate} to ${person.endDate}</p>`;
@@ -3386,12 +3384,12 @@
                         <div class="form-group">
                             <label>Role:</label>
                             <select id="newPersonRole" onchange="toggleTimeLimitedFields()">
-                                <option value="faculty">Faculty</option>
-                                <option value="researcher">Researcher</option>
-                                <option value="phd">PhD Student</option>
-                                <option value="postdoc">Postdoc</option>
-                                <option value="master">Master student</option>
-                                <option value="visitor">Visitor</option>
+                                <option value="Faculty">Faculty</option>
+                                <option value="Researcher">Researcher</option>
+                                <option value="PhD student">PhD Student</option>
+                                <option value="Postdoc">Postdoc</option>
+                                <option value="Master student">Master student</option>
+                                <option value="Visitor">Visitor</option>
                             </select>
                         </div>
                         
@@ -3410,11 +3408,6 @@
                                 <label>Principal Investigator:</label>
                                 <input type="text" id="newPersonPI" placeholder="PI Name">
                             </div>
-                        </div>
-                        
-                        <div class="form-group">
-                            <label>Email (optional):</label>
-                            <input type="email" id="newPersonEmail" placeholder="email@example.com">
                         </div>
                         
                         <div class="modal-buttons">
@@ -3463,7 +3456,7 @@
             const timeLimitedFields = document.getElementById('timeLimitedFields');
             
             // Only visitors and master students need time limits
-            const needsTimeLimit = role === 'visitor' || role === 'master';
+            const needsTimeLimit = role === 'Visitor' || role === 'Master student';
             
             if (needsTimeLimit) {
                 timeLimitedFields.classList.add('show');
@@ -3490,7 +3483,6 @@
             
             listContainer.innerHTML = occupants.map((person, index) => {
                 let details = person.role.charAt(0).toUpperCase() + person.role.slice(1);
-                if (person.email) details += ` • ${person.email}`;
                 if (person.pi) details += ` • PI: ${person.pi}`;
                 if (person.startDate && person.endDate) {
                     details += ` • ${person.startDate} to ${person.endDate}`;
@@ -3512,7 +3504,6 @@
         function addPersonToRoom() {
             const name = document.getElementById('newPersonName').value.trim();
             const role = document.getElementById('newPersonRole').value;
-            const email = document.getElementById('newPersonEmail').value.trim();
             const roomId = document.getElementById('modalRoomId').value;
             
             if (!name) {
@@ -3531,10 +3522,9 @@
             
             // Add person
             const person = { name, role };
-            if (email) person.email = email;
             
             // Add time-limited fields for visitors and master students
-            if (role === 'visitor' || role === 'master') {
+            if (role === 'Visitor' || role === 'Master student') {
                 const startDate = document.getElementById('newPersonStartDate').value;
                 const endDate = document.getElementById('newPersonEndDate').value;
                 const pi = document.getElementById('newPersonPI').value.trim();
@@ -3561,7 +3551,6 @@
             
             // Clear form
             document.getElementById('newPersonName').value = '';
-            document.getElementById('newPersonEmail').value = '';
             document.getElementById('newPersonStartDate').value = '';
             document.getElementById('newPersonEndDate').value = '';
             document.getElementById('newPersonPI').value = '';
@@ -3635,7 +3624,6 @@
                             room_name: room.name,
                             name: person.name,
                             role: person.role,
-                            email: person.email || null,
                             pi: person.pi || null
                         };
                         
@@ -3742,7 +3730,7 @@
                 top: 20px;
                 right: 20px;
                 padding: 12px 20px;
-                background: ${type === 'error' ? '#ef4444' : type === 'warning' ? '#f59e0b' : '#10b981'};
+                background: ${type === 'error' ? '#ef4444' : type === 'warning' ? '#ffffba' : '#10b981'};
                 color: white;
                 border-radius: 8px;
                 z-index: 10000;
@@ -3856,7 +3844,6 @@
                             <strong>Start:</strong> ${person.startDate} <br>
                             <strong>End:</strong> ${person.endDate}
                             ${person.pi ? `<br><strong>PI:</strong> ${person.pi}` : ''}
-                            ${person.email ? `<br><strong>Email:</strong> ${person.email}` : ''}
   
                         </div>
                     </div>
