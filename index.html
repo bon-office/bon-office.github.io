@@ -260,7 +260,7 @@
             opacity: 0;
             transition: opacity 0.2s;
             box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-            max-width: 300px;
+            max-width: 400px;
         }
 
         .tooltip.show {
@@ -3506,7 +3506,7 @@
             }
             
             listContainer.innerHTML = occupants.map((person, index) => {
-                let details = person.role.charAt(0).toUpperCase() + person.role.slice(1);
+                let details = normalizeRole(person.role)
                 if (person.pi) details += ` • PI: ${person.pi}`;
                 if (person.startDate && person.endDate) {
                     details += ` • ${person.startDate} to ${person.endDate}`;
@@ -3861,7 +3861,7 @@
                     <div class="incoming-person-card ${isStartingSoon ? 'starting-soon' : ''}">
                         <div class="incoming-person-name">${person.name}</div>
                         <div class="incoming-person-details">
-                            <span style="color: ${roleColor}; font-weight: 500;">${person.role.charAt(0).toUpperCase() + person.role.slice(1)}</span>
+                            <span style="color: ${roleColor}; font-weight: 500;">${normalizeRole(person.role)}</span>
                             <br>
                             <span class="incoming-person-room">Room: ${person.roomName}</span>
                             <br>
