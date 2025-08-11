@@ -8,6 +8,11 @@
     <!-- Favicon Integration -->
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' fill='%236366f1'/><text y='80' font-size='60' fill='white' text-anchor='middle' x='50'>🏢</text></svg>">
 
+    <!-- Google Fonts - DM Sans -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&display=swap" rel="stylesheet">
+
     <!-- Supabase JS -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     
@@ -22,7 +27,7 @@
         }
 
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             background: #fafafa;
             color: #333;
             line-height: 1.5;
@@ -192,7 +197,7 @@
         }
 
         .workspace.disabled {
-            fill: #e5e7eb;
+            fill: #949699;
             stroke: #9ca3af;
             opacity: 0.6;
             cursor: not-allowed;
@@ -219,7 +224,7 @@
 
         /* Room labels */
         .room-label {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             font-size: 5px;
             font-weight: 500;
             fill: #374151;
@@ -230,7 +235,7 @@
 
         /* Occupancy indicators */
         .occupancy-indicator {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             font-size: 5px;
             font-weight: 600;
             fill: #1f2937;
@@ -3154,7 +3159,7 @@
                 const room = displayData[roomId];
                 
                 if (room && room.disabled) {
-                    workspace.style.fill = '#e5e7eb';
+                    workspace.style.fill = '#949699';
                     workspace.classList.add('disabled');
                     workspace.classList.remove('occupied', 'vacant');
                 } else if (room && room.occupants && room.occupants.length > 0) {
