@@ -3021,6 +3021,29 @@
             'Vacant': '#f9fafb'
         };
 
+        function normalizeRole(role) {
+            // Handle both old database format and new form format
+            const roleMap = {
+                // Old database format -> new format
+                'postdoc': 'Postdoc',
+                'phd': 'PhD student', 
+                'master': 'Master student',
+                'researcher': 'Researcher',
+                'faculty': 'Faculty',
+                'visitor': 'Visitor',
+                
+                // New format (already correct)
+                'Postdoc': 'Postdoc',
+                'PhD student': 'PhD student',
+                'Master student': 'Master student', 
+                'Researcher': 'Researcher',
+                'Faculty': 'Faculty',
+                'Visitor': 'Visitor'
+            };
+            
+            return roleMap[role] || role;
+        }
+
         // Initialize the application
         document.addEventListener('DOMContentLoaded', function() {
             console.log('DOM loaded, initializing application...');
@@ -3239,8 +3262,8 @@
                     workspace.classList.add('disabled');
                     workspace.classList.remove('occupied', 'vacant');
                 } else if (room && room.occupants && room.occupants.length > 0) {
-                    // Use the color of the first occupant's role
-                    const primaryRole = room.occupants[0].role;
+                    // Use the color of the first occupant's role (with normalization)
+                    const primaryRole = normalizeRole(room.occupants[0].role);
                     workspace.style.fill = roleColors[primaryRole] || roleColors.vacant;
                     workspace.classList.add('occupied');
                     workspace.classList.remove('vacant', 'disabled');
@@ -3285,7 +3308,8 @@
                 content += '<p>Room disabled</p>';
             } else if (room && room.occupants && room.occupants.length > 0) {
                 content += room.occupants.map(person => {
-                    let personInfo = `<p><strong>${person.name}</strong> (${person.role})</p>`;
+                    const normalizedRole = normalizeRole(person.role);
+                    let personInfo = `<p><strong>${person.name}</strong> (${normalizedRole})</p>`;
                     if (person.pi) personInfo += `<p>PI: ${person.pi}</p>`;
                     if (person.startDate && person.endDate) {
                         personInfo += `<p>Period: ${person.startDate} to ${person.endDate}</p>`;
