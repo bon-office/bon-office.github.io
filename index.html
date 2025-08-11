@@ -6,9 +6,7 @@
     <title>BON offices</title>
 
     <!-- Favicon Integration -->
-    <link rel="apple-touch-icon" sizes="180x180" href="favicon_io/apple-touch-icon.png">
-    <link rel="icon" type="image/png" sizes="32x32" href="favicon_io/favicon-32x32.png">
-    <link rel="icon" type="image/png" sizes="16x16" href="favicon_io/favicon-16x16.png">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' fill='%236366f1'/><text y='80' font-size='60' fill='white' text-anchor='middle' x='50'>🏢</text></svg>">
 
     <!-- Supabase JS -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -143,7 +141,7 @@
             padding: 2rem;
         }
 
-        .svg-container {
+         .svg-container {
             background: white;
             border-radius: 12px;
             box-shadow: 0 1px 3px rgba(0,0,0,0.1);
@@ -153,10 +151,11 @@
             overflow: auto;
             position: relative;
             width: 100%;
+            min-height: 400px; /* Add minimum height for better layout */
         }
 
         #officePlan {
-            max-width: 100%;
+            max-width: 50%;
             height: auto;
             cursor: default;
         }
@@ -506,6 +505,56 @@
             border-radius: 8px;
             padding: 1rem;
             margin: 1rem 0;
+        }
+
+        .incoming-people-section {
+            background: white;
+            border-top: 1px solid #e5e7eb;
+            padding: 2rem;
+            margin-top: 2rem;
+        }
+
+        .incoming-people-section h2 {
+            margin: 0 0 1.5rem 0;
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: #1f2937;
+        }
+
+        .incoming-people-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 1rem;
+        }
+
+        .incoming-person-card {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 1rem;
+            transition: all 0.2s;
+        }
+
+        .incoming-person-card:hover {
+            background: #f1f5f9;
+            border-color: #cbd5e1;
+        }
+
+        .incoming-person-name {
+            font-weight: 600;
+            color: #1f2937;
+            margin-bottom: 0.25rem;
+        }
+
+        .incoming-person-details {
+            font-size: 0.875rem;
+            color: #6b7280;
+            line-height: 1.4;
+        }
+
+        .incoming-person-room {
+            font-weight: 500;
+            color: #3b82f6;
         }
 
         @media (max-width: 768px) {
@@ -3060,40 +3109,49 @@
 
         // Process and display occupancy data
         function processOccupancyData() {
-            updateWorkspaceColors();
-            //updateOccupancyIndicators();
-            filterOccupantsByDate();
+            const filteredData = filterOccupantsByDate();
+            updateWorkspaceColors(filteredData);
+            updateIncomingPeopleSection();
         }
 
         // Filter occupants by selected date for time-limited roles
         function filterOccupantsByDate() {
-            const targetDate = new Date(selectedDate);
-            
-            Object.keys(occupancyData).forEach(roomId => {
+            // Don't modify the original data - create a filtered copy for display
+            return Object.keys(occupancyData).reduce((filteredData, roomId) => {
                 const room = occupancyData[roomId];
                 if (room && room.occupants) {
-                    room.occupants = room.occupants.filter(person => {
+                    const filteredOccupants = room.occupants.filter(person => {
                         // For visitors and master students, check date range
                         if (person.role === 'visitor' || person.role === 'master') {
                             if (person.startDate && person.endDate) {
+                                const targetDate = new Date(selectedDate);
                                 const startDate = new Date(person.startDate);
                                 const endDate = new Date(person.endDate);
                                 return targetDate >= startDate && targetDate <= endDate;
                             }
+                            return false; // Hide if no date range specified
                         }
-                        return true; // Keep all other roles
+                        return true; // Always show permanent roles
                     });
+                    
+                    filteredData[roomId] = {
+                        ...room,
+                        occupants: filteredOccupants
+                    };
+                } else {
+                    filteredData[roomId] = room;
                 }
-            });
+                return filteredData;
+            }, {});
         }
 
         // Update workspace colors based on occupancy
-        function updateWorkspaceColors() {
+        function updateWorkspaceColors(displayData = occupancyData) {
             const workspaces = document.querySelectorAll('[id^="ws"]');
             
             workspaces.forEach(workspace => {
                 const roomId = workspace.id;
-                const room = occupancyData[roomId];
+                const room = displayData[roomId];
                 
                 if (room && room.disabled) {
                     workspace.style.fill = '#e5e7eb';
@@ -3585,6 +3643,73 @@
                 workspace.style.cursor = 'pointer';
             });
         }
+
+        // Update incoming people section
+        function updateIncomingPeopleSection() {
+            const targetDate = new Date(selectedDate);
+            const incomingPeople = [];
+            
+            Object.entries(occupancyData).forEach(([roomId, room]) => {
+                if (room && room.occupants) {
+                    room.occupants.forEach(person => {
+                        // Check for future visitors and master students
+                        if ((person.role === 'visitor' || person.role === 'master') && 
+                            person.startDate && person.endDate) {
+                            const startDate = new Date(person.startDate);
+                            const endDate = new Date(person.endDate);
+                            
+                            // Show if start date is in the future
+                            if (startDate > targetDate) {
+                                incomingPeople.push({
+                                    ...person,
+                                    roomId: roomId,
+                                    roomName: room.name || roomId
+                                });
+                            }
+                        }
+                    });
+                }
+            });
+            
+            const section = document.getElementById('incomingPeopleSection');
+            const list = document.getElementById('incomingPeopleList');
+            
+            if (incomingPeople.length === 0) {
+                section.style.display = 'none';
+                return;
+            }
+            
+            // Sort by start date
+            incomingPeople.sort((a, b) => new Date(a.startDate) - new Date(b.startDate));
+            
+            list.innerHTML = incomingPeople.map(person => {
+                const roleColor = roleColors[person.role] || '#6b7280';
+                return `
+                    <div class="incoming-person-card">
+                        <div class="incoming-person-name">${person.name}</div>
+                        <div class="incoming-person-details">
+                            <span style="color: ${roleColor}; font-weight: 500;">${person.role.charAt(0).toUpperCase() + person.role.slice(1)}</span>
+                            <br>
+                            <span class="incoming-person-room">Room: ${person.roomName}</span>
+                            <br>
+                            Period: ${person.startDate} to ${person.endDate}
+                            ${person.pi ? `<br>PI: ${person.pi}` : ''}
+                            ${person.email ? `<br>Email: ${person.email}` : ''}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+            
+            section.style.display = 'block';
+        }
     </script>
+
+        <!-- Incoming People Section -->
+    <div id="incomingPeopleSection" class="incoming-people-section" style="display: none;">
+        <div class="main-container">
+            <h2>Incoming People</h2>
+            <div id="incomingPeopleList" class="incoming-people-list"></div>
+        </div>
+    </div>
 </body>
 </html>
