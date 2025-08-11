@@ -2980,7 +2980,7 @@
             </div>
 
             <div id="incomingPeopleSection" class="incoming-people-section" style="display: none;">
-                <h2>Incoming People</h2>
+                <h2>Incoming people</h2>
             <div id="incomingPeopleList" class="incoming-people-list"></div>
         </div>
         </div>
@@ -3844,13 +3844,12 @@
                     <div class="incoming-person-card ${isStartingSoon ? 'starting-soon' : ''}" style="border-color: ${roleColor};">
                         <div class="incoming-person-name">${person.name}</div>
                         <div class="incoming-person-details">
-                            <span class="incoming-person-room">Room: ${person.roomName}</span>
+                            <span class="incoming-person-room"><i>Room:</i> ${person.roomName}</span>
                             <br>
                             <div class="dates-row">
-                                <span><i>Start:</i> ${person.startDate}</span>
-                                <span><i>End:</i> ${person.endDate}</span>
+                                <span><i>Period:</i> ${person.startDate} <i>to </i> ${person.endDate}</span>
                             </div>
-                            ${person.pi ? `<strong>PI:</strong> ${person.pi}` : ''}
+                            ${person.pi ? `<i>PI:</i> ${person.pi}` : ''}
                         </div>
                     </div>
                 `;
