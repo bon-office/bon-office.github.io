@@ -3406,36 +3406,43 @@
             updateWorkspaceStyles();
         }
 
-        // Load occupancy data
-        function loadOccupancyData() {
-            // Try to load from Supabase first, fallback to localStorage
+        // Load occupancy data from new table structure
+        async function loadOccupancyData() {
             if (supabase) {
-                loadFromSupabase();
+                await loadFromSupabase();
             } else {
                 loadFromLocalStorage();
             }
         }
 
-        // Load data from Supabase
+        // Load from new Supabase structure
         async function loadFromSupabase() {
             try {
-                const { data, error } = await supabase
-                    .from('occupancy_data')
-                    .select('*')
-                    .eq('date', selectedDate);
+                // Load all permanent occupants (always visible)
+                const { data: permanentData, error: permanentError } = await supabase
+                    .from('permanent_occupants')
+                    .select('*');
                     
-                if (error) {
-                    console.warn('Failed to load from Supabase (table may not exist yet):', error);
+                // Load temporary occupants filtered by date
+                const { data: temporaryData, error: temporaryError } = await supabase
+                    .from('temporary_occupants')
+                    .select('*')
+                    .lte('start_date', selectedDate)
+                    .gte('end_date', selectedDate);
+                    
+                // Load room settings
+                const { data: roomSettings, error: roomError } = await supabase
+                    .from('room_settings')
+                    .select('*');
+                    
+                if (permanentError || temporaryError || roomError) {
+                    console.warn('Error loading from Supabase:', { permanentError, temporaryError, roomError });
                     loadFromLocalStorage();
                     return;
                 }
                 
-                if (data && data.length > 0) {
-                    occupancyData = data[0].data || {};
-                } else {
-                    occupancyData = {};
-                }
-                
+                // Merge the data
+                occupancyData = mergeOccupancyData(permanentData || [], temporaryData || [], roomSettings || []);
                 processOccupancyData();
                 
             } catch (error) {
@@ -3451,48 +3458,16 @@
             processOccupancyData();
         }
 
-        // Updated processOccupancyData to ensure incoming people section is updated
+        // Updated processOccupancyData - no need for filtering anymore since database handles it
         function processOccupancyData() {
-            const filteredData = filterOccupantsByDate();
-            updateWorkspaceColors(filteredData);
-            updateIncomingPeopleSection(); // Make sure this is called
+            updateWorkspaceColors(occupancyData);
+            updateIncomingPeopleSection();
             
-            // Debug logging
             console.log('Processed occupancy data for date:', selectedDate);
-            console.log('Filtered data:', filteredData);
+            console.log('Data:', occupancyData);
         }
 
 
-        // Filter occupants by selected date for time-limited roles
-        function filterOccupantsByDate() {
-            // Don't modify the original data - create a filtered copy for display
-            return Object.keys(occupancyData).reduce((filteredData, roomId) => {
-                const room = occupancyData[roomId];
-                if (room && room.occupants) {
-                    const filteredOccupants = room.occupants.filter(person => {
-                        // For visitors and master students, check date range
-                        if (person.role === 'Visitor' || person.role === 'Master student') {
-                            if (person.startDate && person.endDate) {
-                                const targetDate = new Date(selectedDate);
-                                const startDate = new Date(person.startDate);
-                                const endDate = new Date(person.endDate);
-                                return targetDate >= startDate && targetDate <= endDate;
-                            }
-                            return false; // Hide if no date range specified
-                        }
-                        return true; // Always show permanent roles
-                    });
-                    
-                    filteredData[roomId] = {
-                        ...room,
-                        occupants: filteredOccupants
-                    };
-                } else {
-                    filteredData[roomId] = room;
-                }
-                return filteredData;
-            }, {});
-        }
 
         // Update workspace colors based on occupancy
         function updateWorkspaceColors(displayData = occupancyData) {
@@ -3769,7 +3744,7 @@
             }).join('');
         }
 
-        // Add person to room
+        // Updated addPersonToRoom function
         function addPersonToRoom() {
             const name = document.getElementById('newPersonName').value.trim();
             const role = document.getElementById('newPersonRole').value;
@@ -3789,8 +3764,12 @@
                 };
             }
             
-            // Add person
-            const person = { name, role };
+            // Create person object
+            const person = { 
+                name, 
+                role,
+                permanent: true // Default to permanent
+            };
             
             // Add time-limited fields for visitors and master students
             if (role === 'Visitor' || role === 'Master student') {
@@ -3811,12 +3790,29 @@
                 person.startDate = startDate;
                 person.endDate = endDate;
                 person.pi = pi;
+                person.permanent = false; // Mark as temporary
+            }
+            
+            // Check if person already exists
+            const exists = occupancyData[roomId].occupants.some(existing => 
+                existing.name === person.name && existing.role === person.role
+            );
+            
+            if (exists) {
+                showNotification('Person already exists in this room', 'error');
+                return;
             }
             
             occupancyData[roomId].occupants.push(person);
             
+            // Save to database immediately
+            saveOccupancyData();
+            
             // Update modal display
             updateModalOccupantsList(occupancyData[roomId].occupants);
+            
+            // Update the main display
+            processOccupancyData();
             
             // Clear form
             document.getElementById('newPersonName').value = '';
@@ -3827,15 +3823,51 @@
             showNotification('Person added successfully');
         }
 
-        // Remove person from room
-        function removePersonFromRoom(index) {
+        // Remove person from room and database
+        async function removePersonFromRoom(index) {
             const roomId = document.getElementById('modalRoomId').value;
             
-            if (occupancyData[roomId] && occupancyData[roomId].occupants) {
-                occupancyData[roomId].occupants.splice(index, 1);
-                updateModalOccupantsList(occupancyData[roomId].occupants);
-                showNotification('Person removed');
+            if (!occupancyData[roomId] || !occupancyData[roomId].occupants) {
+                return;
             }
+            
+            const person = occupancyData[roomId].occupants[index];
+            
+            // Remove from database if using Supabase
+            if (supabase && person) {
+                try {
+                    if (person.permanent || (person.role !== 'Visitor' && person.role !== 'Master student')) {
+                        // Remove from permanent_occupants
+                        await supabase
+                            .from('permanent_occupants')
+                            .delete()
+                            .eq('room_id', roomId)
+                            .eq('name', person.name)
+                            .eq('role', person.role);
+                    } else {
+                        // Remove from temporary_occupants
+                        await supabase
+                            .from('temporary_occupants')
+                            .delete()
+                            .eq('room_id', roomId)
+                            .eq('name', person.name)
+                            .eq('role', person.role)
+                            .eq('start_date', person.startDate)
+                            .eq('end_date', person.endDate);
+                    }
+                } catch (error) {
+                    console.warn('Failed to remove from database:', error);
+                }
+            }
+            
+            // Remove from local data
+            occupancyData[roomId].occupants.splice(index, 1);
+            updateModalOccupantsList(occupancyData[roomId].occupants);
+            
+            // Update display
+            processOccupancyData();
+            
+            showNotification('Person removed');
         }
 
         // Save room changes
@@ -3862,17 +3894,13 @@
             }
         }
 
-        // Save occupancy data
+        // Simplified save function
         async function saveOccupancyData() {
             try {
-                // Save to Supabase if available
                 if (supabase) {
                     await saveToSupabase();
                 }
-                
-                // Always save to localStorage as backup
                 saveToLocalStorage();
-                
             } catch (error) {
                 console.error('Save error:', error);
                 saveToLocalStorage();
@@ -3880,80 +3908,68 @@
             }
         }
 
+        // Keep localStorage as backup (simplified)
         function saveToLocalStorage() {
-            const permanentOccupants = [];
-            const temporaryOccupants = [];
-            
-            // Separate permanent and temporary occupants
-            Object.entries(occupancyData).forEach(([roomId, room]) => {
-                if (room && room.occupants) {
-                    room.occupants.forEach(person => {
-                        const baseRecord = {
-                            room_id: roomId,
-                            room_name: room.name,
-                            name: person.name,
-                            role: person.role,
-                            pi: person.pi || null
-                        };
-                        
-                        if (person.permanent || (!person.startDate && !person.endDate)) {
-                            permanentOccupants.push({
-                                ...baseRecord,
-                                disabled: room.disabled || false
-                            });
-                        } else {
-                            temporaryOccupants.push({
-                                ...baseRecord,
-                                start_date: person.startDate,
-                                end_date: person.endDate
-                            });
-                        }
-                    });
-                }
-            });
-            
-            localStorage.setItem('permanent_occupants', JSON.stringify(permanentOccupants));
-            localStorage.setItem('temporary_occupants', JSON.stringify(temporaryOccupants));
+            localStorage.setItem(`occupancy_data_backup`, JSON.stringify(occupancyData));
         }
 
-        // Save to Supabase - Fixed version
+
+        // Save to new Supabase structure
         async function saveToSupabase() {
             try {
-                // First, try to update existing record
-                const { data: updateData, error: updateError } = await supabase
-                    .from('occupancy_data')
-                    .update({
-                        data: occupancyData,
-                        updated_at: new Date().toISOString()
-                    })
-                    .eq('date', selectedDate)
-                    .select();
-                    
-                if (updateError) {
-                    console.warn('Update error:', updateError);
-                    throw updateError;
+                const roomId = document.getElementById('modalRoomId')?.value;
+                if (!roomId || !occupancyData[roomId]) {
+                    console.warn('No room data to save');
+                    return;
                 }
                 
-                // If no rows were updated (record doesn't exist), insert new record
-                if (!updateData || updateData.length === 0) {
-                    const { data: insertData, error: insertError } = await supabase
-                        .from('occupancy_data')
-                        .insert({
-                            date: selectedDate,
-                            data: occupancyData,
-                            updated_at: new Date().toISOString()
-                        })
-                        .select();
-                        
-                    if (insertError) {
-                        console.warn('Insert error:', insertError);
-                        throw insertError;
-                    }
+                const room = occupancyData[roomId];
+                
+                // Save room settings
+                await supabase
+                    .from('room_settings')
+                    .upsert({
+                        room_id: roomId,
+                        room_name: room.name,
+                        disabled: room.disabled || false,
+                        updated_at: new Date().toISOString()
+                    });
                     
-                    console.log('New data inserted to Supabase successfully');
-                } else {
-                    console.log('Data updated in Supabase successfully');
+                // Save occupants to appropriate tables
+                if (room.occupants) {
+                    for (const person of room.occupants) {
+                        if (person.permanent || (person.role !== 'Visitor' && person.role !== 'Master student')) {
+                            // Save to permanent_occupants
+                            await supabase
+                                .from('permanent_occupants')
+                                .upsert({
+                                    room_id: roomId,
+                                    room_name: room.name,
+                                    name: person.name,
+                                    role: person.role,
+                                    pi: person.pi,
+                                    disabled: room.disabled || false,
+                                    updated_at: new Date().toISOString()
+                                });
+                        } else {
+                            // Save to temporary_occupants
+                            await supabase
+                                .from('temporary_occupants')
+                                .upsert({
+                                    room_id: roomId,
+                                    room_name: room.name,
+                                    name: person.name,
+                                    role: person.role,
+                                    pi: person.pi,
+                                    start_date: person.startDate,
+                                    end_date: person.endDate,
+                                    updated_at: new Date().toISOString()
+                                });
+                        }
+                    }
                 }
+                
+                console.log('Data saved to Supabase successfully');
                 
             } catch (error) {
                 console.warn('Failed to save to Supabase:', error);
@@ -3961,28 +3977,78 @@
             }
         }
 
-        // Updated localStorage functions to handle the new data structure
         function loadFromLocalStorage() {
-            // Try to load new format first
-            const permanentStored = localStorage.getItem('permanent_occupants');
-            const temporaryStored = localStorage.getItem('temporary_occupants');
-            
-            if (permanentStored || temporaryStored) {
-                const permanentData = permanentStored ? JSON.parse(permanentStored) : [];
-                const temporaryData = temporaryStored ? JSON.parse(temporaryStored) : [];
-                occupancyData = mergeOccupancyData(permanentData, temporaryData);
+            const stored = localStorage.getItem(`occupancy_data_backup`);
+            if (stored) {
+                occupancyData = JSON.parse(stored);
             } else {
-                // Fallback to old format for backward compatibility
-                const stored = localStorage.getItem(`occupancy_${selectedDate}`);
-                occupancyData = stored ? JSON.parse(stored) : {};
-                
-                // Convert old format to new format if data exists
-                if (Object.keys(occupancyData).length > 0) {
-                    convertOldFormatToNew();
-                }
+                occupancyData = {};
             }
-            
             processOccupancyData();
+        }
+
+        // Merge data from the three tables
+        function mergeOccupancyData(permanentData, temporaryData, roomSettings) {
+            const merged = {};
+            
+            // Create room settings lookup
+            const roomSettingsMap = {};
+            roomSettings.forEach(room => {
+                roomSettingsMap[room.room_id] = room;
+            });
+            
+            // Add permanent occupants
+            permanentData.forEach(person => {
+                if (!merged[person.room_id]) {
+                    const roomSetting = roomSettingsMap[person.room_id];
+                    merged[person.room_id] = {
+                        name: roomSetting?.room_name || person.room_name || person.room_id,
+                        occupants: [],
+                        disabled: roomSetting?.disabled || person.disabled || false
+                    };
+                }
+                
+                merged[person.room_id].occupants.push({
+                    name: person.name,
+                    role: person.role,
+                    pi: person.pi,
+                    permanent: true
+                });
+            });
+            
+            // Add temporary occupants
+            temporaryData.forEach(person => {
+                if (!merged[person.room_id]) {
+                    const roomSetting = roomSettingsMap[person.room_id];
+                    merged[person.room_id] = {
+                        name: roomSetting?.room_name || person.room_name || person.room_id,
+                        occupants: [],
+                        disabled: roomSetting?.disabled || false
+                    };
+                }
+                
+                merged[person.room_id].occupants.push({
+                    name: person.name,
+                    role: person.role,
+                    pi: person.pi,
+                    startDate: person.start_date,
+                    endDate: person.end_date,
+                    permanent: false
+                });
+            });
+            
+            // Add empty rooms with settings
+            roomSettings.forEach(roomSetting => {
+                if (!merged[roomSetting.room_id]) {
+                    merged[roomSetting.room_id] = {
+                        name: roomSetting.room_name,
+                        occupants: [],
+                        disabled: roomSetting.disabled
+                    };
+                }
+            });
+            
+            return merged;
         }
 
         // Show notification
@@ -4047,28 +4113,23 @@
             });
         }
 
-        // Updated updateIncomingPeopleSection function
+        // Update the updateIncomingPeopleSection to work with new structure
         function updateIncomingPeopleSection() {
             const targetDate = new Date(selectedDate);
             const today = new Date();
-            today.setHours(0, 0, 0, 0); // Reset time for comparison
+            today.setHours(0, 0, 0, 0);
             
             const incomingPeople = [];
             
             Object.entries(occupancyData).forEach(([roomId, room]) => {
                 if (room && room.occupants) {
                     room.occupants.forEach(person => {
-                        // Only check temporary occupants (visitors and master students)
+                        // Only check temporary occupants with future start dates
                         if (!person.permanent && person.startDate && person.endDate) {
                             const startDate = new Date(person.startDate);
-                            const endDate = new Date(person.endDate);
                             
-                            // Show if start date is in the future from today's perspective
-                            // OR if viewing a future date and the person will be there
-                            const showAsFuture = startDate > today;
-                            const showForSelectedDate = targetDate >= startDate && targetDate <= endDate && startDate > today;
-                            
-                            if (showAsFuture || showForSelectedDate) {
+                            // Show if start date is in the future from today
+                            if (startDate > today) {
                                 incomingPeople.push({
                                     ...person,
                                     roomId: roomId,
@@ -4084,7 +4145,6 @@
             const list = document.getElementById('incomingPeopleList');
             
             if (!section || !list) {
-                console.warn('Incoming people section elements not found');
                 return;
             }
             
@@ -4099,8 +4159,7 @@
             list.innerHTML = incomingPeople.map(person => {
                 const roleColor = roleColors[person.role] || '#e5e7eb';
                 const startDate = new Date(person.startDate);
-                const endDate = new Date(person.endDate);
-                const isStartingSoon = (startDate - today) / (1000 * 60 * 60 * 24) <= 7; // Within 7 days
+                const isStartingSoon = (startDate - today) / (1000 * 60 * 60 * 24) <= 7;
                 
                 return `
                     <div class="incoming-person-card ${isStartingSoon ? 'starting-soon' : ''}" style="border-color: ${roleColor};">
@@ -4109,7 +4168,7 @@
                             <span class="incoming-person-room"><i>Room:</i> ${person.roomName}</span>
                             <br>
                             <div class="dates-row">
-                                <span><i>Period:</i> ${person.startDate} <i>to </i> ${person.endDate}</span>
+                                <span><i>Period:</i> ${person.startDate} <i>to</i> ${person.endDate}</span>
                             </div>
                             ${person.pi ? `<i>PI:</i> ${person.pi}` : ''}
                         </div>
@@ -4118,7 +4177,6 @@
             }).join('');
             
             section.style.display = 'block';
-            console.log(`Showing ${incomingPeople.length} incoming people`);
         }
     </script>
 
