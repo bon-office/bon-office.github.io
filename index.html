@@ -680,6 +680,37 @@
             }
         }
 
+        .occupancy-circles {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .occupancy-circle {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            border: 2px solid #d1d5db;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.7rem;
+            font-weight: 600;
+        }
+
+        .occupancy-circle.filled {
+            background: #10b981;
+            border-color: #10b981;
+            color: white;
+        }
+
+        .occupancy-circle.empty {
+            background: #f9fafb;
+            border-color: #d1d5db;
+            color: #6b7280;
+        }
+
 
         /* Improve responsive design */
         @media (max-width: 768px) {
@@ -771,10 +802,6 @@
             <div class="header-content">
                 <h1 class="title">BON office - AlbaNova 2nd floor</h1>
                 <div class="controls">
-                    <div class="date-group">
-                        <label class="date-label">Occupancy at future date</label>
-                        <input type="date" class="date-picker" id="datePicker" title="View occupancy on this date">
-                    </div>
                     <button class="admin-btn" id="adminBtn" onclick="toggleAdminMode()">Admin</button>
                 </div>
             </div>
@@ -3254,7 +3281,7 @@
         // Global variables
         let isAdminMode = false;
         let occupancyData = {};
-        let selectedDate = new Date().toISOString().split('T')[0];
+        const selectedDate = new Date().toISOString().split('T')[0];
         let supabase = null;
 
         // Color mapping for different roles
@@ -3293,9 +3320,6 @@
 
         // Initialize the application
             console.log('DOM loaded, initializing application...');
-            
-            // Set today's date as default
-            document.getElementById('datePicker').value = selectedDate;
             
             // Initialize Supabase
             initializeSupabase();
@@ -3342,11 +3366,6 @@
 
         // Set up event listeners
         function setupEventListeners() {
-            // Date picker
-            document.getElementById('datePicker').addEventListener('change', function(e) {
-                selectedDate = e.target.value;
-                loadOccupancyData();
-            });
             
             // SVG workspace interactions
             setupWorkspaceInteractions();
@@ -3408,11 +3427,40 @@
 
         // Load occupancy data from new table structure
         async function loadOccupancyData() {
+            // Always use current date
+            selectedDate = new Date().toISOString().split('T')[0];
+            
             if (supabase) {
                 await loadFromSupabase();
             } else {
                 loadFromLocalStorage();
             }
+            
+            // Clean up expired occupants
+            cleanupExpiredOccupants();
+        }
+
+        function cleanupExpiredOccupants() {
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            
+            Object.keys(occupancyData).forEach(roomId => {
+                const room = occupancyData[roomId];
+                if (room && room.occupants) {
+                    room.occupants = room.occupants.filter(person => {
+                        if (person.permanent) return true;
+                        if (!person.endDate) return true;
+                        
+                        const endDate = new Date(person.endDate);
+                        endDate.setHours(23, 59, 59, 999); // End of the end date
+                        
+                        return endDate >= today;
+                    });
+                }
+            });
+            
+            // Save after cleanup
+            saveOccupancyData();
         }
 
         // Load from new Supabase structure
@@ -3639,13 +3687,17 @@
                         </div>
                         
                         <div class="form-group">
-                            <label>Current Occupancy:</label>
-                            <div id="occupancyInfo" style="padding: 0.5rem; background: #f3f4f6; border-radius: 6px; margin-bottom: 1rem;">
-                                <span id="currentOccupancyText">0/1 people</span>
-                                <div id="nextAvailableSlot" style="margin-top: 0.5rem; font-size: 0.8rem; color: #6b7280;"></div>
-                            </div>
+                            <div id="occupancyCircles" class="occupancy-circles"></div>
+                        </div>
+
+                        <div id="nextAvailableSlot" style="margin-top: 0.5rem; font-size: 0.8rem; color: #6b7280; display: none;"
                         </div>
                         
+                        <div class="form-group" id="incomingOccupantsSection" style="display: none;">
+                            <label>Incoming Occupants:</label>
+                            <div id="modalIncomingOccupantsList" class="occupants-list"></div>
+                        </div>
+
                         <div id="adminOptions" class="admin-options">
                             <div class="form-group">
                                 <label>Maximum Occupancy:</label>
@@ -3731,39 +3783,64 @@
             
             if (!room) return;
             
-            // Update max occupancy in room object
             room.maxOccupancy = maxOccupancy;
-            
-            // Calculate current occupancy for selected date
             const currentOccupancy = calculateOccupancyForDate(roomId, selectedDate);
             
-            // Update display
-            const occupancyText = document.getElementById('currentOccupancyText');
-            occupancyText.textContent = `${currentOccupancy}/${maxOccupancy} people`;
+            // Update circles display
+            const circlesContainer = document.getElementById('occupancyCircles');
+            circlesContainer.innerHTML = '';
+            
+            for (let i = 0; i < maxOccupancy; i++) {
+                const circle = document.createElement('div');
+                circle.className = `occupancy-circle ${i < currentOccupancy ? 'filled' : 'empty'}`;
+                circle.textContent = i < currentOccupancy ? '●' : '○';
+                circlesContainer.appendChild(circle);
+            }
             
             // Show warning if over capacity
             if (currentOccupancy > maxOccupancy) {
-                occupancyText.style.color = '#ef4444';
-                occupancyText.textContent += ' (Over capacity!)';
-            } else if (currentOccupancy === maxOccupancy) {
-                occupancyText.style.color = '#f59e0b';
-                occupancyText.textContent += ' (Full)';
-            } else {
-                occupancyText.style.color = '#10b981';
+                const warningDiv = document.createElement('div');
+                warningDiv.style.color = '#ef4444';
+                warningDiv.style.fontWeight = 'bold';
+                warningDiv.style.marginLeft = '0.5rem';
+                warningDiv.textContent = '(Over capacity!)';
+                circlesContainer.appendChild(warningDiv);
             }
             
-            // Show next available slot if room is full and has time-limited people
+            // Handle add person button state and next available slot
+            const addPersonBtn = document.querySelector('.btn-primary[onclick="addPersonToRoom()"]');
             const nextSlotDiv = document.getElementById('nextAvailableSlot');
+            
             if (currentOccupancy >= maxOccupancy) {
+                // Disable add person button
+                if (addPersonBtn) {
+                    addPersonBtn.disabled = true;
+                    addPersonBtn.textContent = 'Room Full';
+                    addPersonBtn.style.opacity = '0.5';
+                    addPersonBtn.style.cursor = 'not-allowed';
+                }
+                
+                // Show next available slot
                 const nextSlot = findNextAvailableSlot(roomId);
-                if (nextSlot) {
+                if (nextSlot && nextSlotDiv) {
                     nextSlotDiv.innerHTML = `<strong>Next available slot:</strong> ${nextSlot}`;
                     nextSlotDiv.style.display = 'block';
-                } else {
+                } else if (nextSlotDiv) {
                     nextSlotDiv.style.display = 'none';
                 }
             } else {
-                nextSlotDiv.style.display = 'none';
+                // Enable add person button
+                if (addPersonBtn) {
+                    addPersonBtn.disabled = false;
+                    addPersonBtn.textContent = 'Add Person';
+                    addPersonBtn.style.opacity = '1';
+                    addPersonBtn.style.cursor = 'pointer';
+                }
+                
+                // Hide next available slot
+                if (nextSlotDiv) {
+                    nextSlotDiv.style.display = 'none';
+                }
             }
         }
 
@@ -3808,29 +3885,80 @@
         // Update modal occupants list
         function updateModalOccupantsList(occupants) {
             const listContainer = document.getElementById('modalOccupantsList');
+            const incomingContainer = document.getElementById('modalIncomingOccupantsList');
+            const incomingSection = document.getElementById('incomingOccupantsSection');
             
-            if (!occupants || occupants.length === 0) {
-                listContainer.innerHTML = '<p style="text-align: center; color: #6b7280;">No occupants</p>';
-                return;
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            
+            // Separate current and incoming occupants
+            const currentOccupants = [];
+            const incomingOccupants = [];
+            
+            if (occupants && occupants.length > 0) {
+                occupants.forEach(person => {
+                    if (person.permanent) {
+                        currentOccupants.push(person);
+                    } else if (person.startDate && person.endDate) {
+                        const startDate = new Date(person.startDate);
+                        startDate.setHours(0, 0, 0, 0);
+                        
+                        if (startDate <= today) {
+                            currentOccupants.push(person);
+                        } else {
+                            incomingOccupants.push(person);
+                        }
+                    }
+                });
             }
             
-            listContainer.innerHTML = occupants.map((person, index) => {
-                let details = normalizeRole(person.role)
-                if (person.pi) details += ` • PI: ${person.pi}`;
-                if (person.startDate && person.endDate) {
-                    details += ` • ${person.startDate} to ${person.endDate}`;
-                }
-                
-                return `
-                    <div class="occupant-item">
-                        <div class="occupant-info">
-                            <div class="occupant-name">${person.name}</div>
-                            <div class="occupant-details">${details}</div>
+            // Update current occupants
+            if (currentOccupants.length === 0) {
+                listContainer.innerHTML = '<p style="text-align: center; color: #6b7280;">No current occupants</p>';
+            } else {
+                listContainer.innerHTML = currentOccupants.map((person, index) => {
+                    let details = normalizeRole(person.role);
+                    if (person.pi) details += ` • PI: ${person.pi}`;
+                    if (person.startDate && person.endDate) {
+                        details += ` • ${person.startDate} to ${person.endDate}`;
+                    }
+                    
+                    return `
+                        <div class="occupant-item">
+                            <div class="occupant-info">
+                                <div class="occupant-name">${person.name}</div>
+                                <div class="occupant-details">${details}</div>
+                            </div>
+                            <button class="remove-btn" onclick="removePersonFromRoom(${index})">Remove</button>
                         </div>
-                        <button class="remove-btn" onclick="removePersonFromRoom(${index})">Remove</button>
-                    </div>
-                `;
-            }).join('');
+                    `;
+                }).join('');
+            }
+            
+            // Update incoming occupants
+            if (incomingOccupants.length === 0) {
+                incomingSection.style.display = 'none';
+            } else {
+                incomingSection.style.display = 'block';
+                incomingContainer.innerHTML = incomingOccupants.map(person => {
+                    let details = normalizeRole(person.role);
+                    if (person.pi) details += ` • PI: ${person.pi}`;
+                    details += ` • Arriving: ${person.startDate}`;
+                    if (person.endDate) details += ` • Until: ${person.endDate}`;
+                    
+                    const occupantIndex = occupants.indexOf(person);
+                    
+                    return `
+                        <div class="occupant-item" style="background: #f0f9ff; border-left: 3px solid #3b82f6;">
+                            <div class="occupant-info">
+                                <div class="occupant-name">${person.name}</div>
+                                <div class="occupant-details">${details}</div>
+                            </div>
+                            <button class="remove-btn" onclick="removePersonFromRoom(${occupantIndex})">Remove</button>
+                        </div>
+                    `;
+                }).join('');
+            }
         }
 
         // Updated addPersonToRoom function
