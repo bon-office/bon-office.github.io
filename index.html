@@ -3526,16 +3526,35 @@
             
             if (room && room.disabled) {
                 content += '<p>Room disabled</p>';
-            } else if (room && room.occupants && room.occupants.length > 0) {
-                content += room.occupants.map(person => {
-                    const normalizedRole = normalizeRole(person.role);
-                    let personInfo = `<p><strong>${person.name}</strong> (${normalizedRole})</p>`;
-                    if (person.pi) personInfo += `<p>PI: ${person.pi}</p>`;
-                    if (person.startDate && person.endDate) {
-                        personInfo += `<p>Period: ${person.startDate} to ${person.endDate}</p>`;
-                    }
-                    return personInfo;
-                }).join('');
+            } else if (room) {
+                const currentOccupancy = calculateOccupancyForDate(roomId, selectedDate);
+                const maxOccupancy = room.maxOccupancy || 1;
+                
+                content += `<p>Occupancy: ${currentOccupancy}/${maxOccupancy}</p>`;
+                
+                if (room.occupants && room.occupants.length > 0) {
+                    // Show occupants for the current date
+                    const currentOccupants = room.occupants.filter(person => {
+                        if (person.permanent) return true;
+                        if (!person.startDate || !person.endDate) return false;
+                        const checkDate = new Date(selectedDate);
+                        const startDate = new Date(person.startDate);
+                        const endDate = new Date(person.endDate);
+                        return checkDate >= startDate && checkDate <= endDate;
+                    });
+                    
+                    content += currentOccupants.map(person => {
+                        const normalizedRole = normalizeRole(person.role);
+                        let personInfo = `<p><strong>${person.name}</strong> (${normalizedRole})</p>`;
+                        if (person.pi) personInfo += `<p>PI: ${person.pi}</p>`;
+                        if (person.startDate && person.endDate) {
+                            personInfo += `<p>Period: ${person.startDate} to ${person.endDate}</p>`;
+                        }
+                        return personInfo;
+                    }).join('');
+                } else {
+                    content += '<p>Vacant</p>';
+                }
             } else {
                 content += '<p>Vacant</p>';
             }
@@ -3577,11 +3596,17 @@
                 modal = createWorkspaceModal();
             }
             
-            const room = occupancyData[roomId] || { name: roomId, occupants: [], disabled: false };
+            const room = occupancyData[roomId] || { 
+                name: roomId, 
+                occupants: [], 
+                disabled: false,
+                maxOccupancy: 1
+            };
             
             // Populate modal with current data
             document.getElementById('modalRoomName').value = room.name || roomId;
             document.getElementById('modalRoomId').value = roomId;
+            document.getElementById('maxOccupancyInput').value = room.maxOccupancy || 1;
             
             // Show/hide admin options
             const adminOptions = document.getElementById('adminOptions');
@@ -3595,10 +3620,12 @@
             // Populate occupants list
             updateModalOccupantsList(room.occupants || []);
             
+            // Update occupancy display
+            updateOccupancyDisplay();
+            
             modal.style.display = 'block';
         }
 
-        // Create workspace modal
         function createWorkspaceModal() {
             const modalHTML = `
                 <div id="workspaceModal" class="modal">
@@ -3611,7 +3638,19 @@
                             <input type="hidden" id="modalRoomId">
                         </div>
                         
+                        <div class="form-group">
+                            <label>Current Occupancy:</label>
+                            <div id="occupancyInfo" style="padding: 0.5rem; background: #f3f4f6; border-radius: 6px; margin-bottom: 1rem;">
+                                <span id="currentOccupancyText">0/1 people</span>
+                                <div id="nextAvailableSlot" style="margin-top: 0.5rem; font-size: 0.8rem; color: #6b7280;"></div>
+                            </div>
+                        </div>
+                        
                         <div id="adminOptions" class="admin-options">
+                            <div class="form-group">
+                                <label>Maximum Occupancy:</label>
+                                <input type="number" id="maxOccupancyInput" min="1" max="10" value="1">
+                            </div>
                             <button id="toggleRoomBtn" class="admin-option-btn">Enable/Disable Room</button>
                         </div>
                         
@@ -3654,6 +3693,8 @@
                             </div>
                         </div>
                         
+                        <div id="occupancyWarning" class="error-message" style="display: none;"></div>
+                        
                         <div class="modal-buttons">
                             <button class="btn btn-secondary" onclick="closeWorkspaceModal()">Cancel</button>
                             <button class="btn btn-primary" onclick="addPersonToRoom()">Add Person</button>
@@ -3675,7 +3716,55 @@
                 showNotification(room.disabled ? 'Room disabled' : 'Room enabled');
             });
             
+            // Set up max occupancy change handler
+            document.getElementById('maxOccupancyInput').addEventListener('input', function() {
+                updateOccupancyDisplay();
+            });
+            
             return document.getElementById('workspaceModal');
+        }
+
+        function updateOccupancyDisplay() {
+            const roomId = document.getElementById('modalRoomId').value;
+            const room = occupancyData[roomId];
+            const maxOccupancy = parseInt(document.getElementById('maxOccupancyInput').value) || 1;
+            
+            if (!room) return;
+            
+            // Update max occupancy in room object
+            room.maxOccupancy = maxOccupancy;
+            
+            // Calculate current occupancy for selected date
+            const currentOccupancy = calculateOccupancyForDate(roomId, selectedDate);
+            
+            // Update display
+            const occupancyText = document.getElementById('currentOccupancyText');
+            occupancyText.textContent = `${currentOccupancy}/${maxOccupancy} people`;
+            
+            // Show warning if over capacity
+            if (currentOccupancy > maxOccupancy) {
+                occupancyText.style.color = '#ef4444';
+                occupancyText.textContent += ' (Over capacity!)';
+            } else if (currentOccupancy === maxOccupancy) {
+                occupancyText.style.color = '#f59e0b';
+                occupancyText.textContent += ' (Full)';
+            } else {
+                occupancyText.style.color = '#10b981';
+            }
+            
+            // Show next available slot if room is full and has time-limited people
+            const nextSlotDiv = document.getElementById('nextAvailableSlot');
+            if (currentOccupancy >= maxOccupancy) {
+                const nextSlot = findNextAvailableSlot(roomId);
+                if (nextSlot) {
+                    nextSlotDiv.innerHTML = `<strong>Next available slot:</strong> ${nextSlot}`;
+                    nextSlotDiv.style.display = 'block';
+                } else {
+                    nextSlotDiv.style.display = 'none';
+                }
+            } else {
+                nextSlotDiv.style.display = 'none';
+            }
         }
 
         // Update admin options based on room state
@@ -3760,15 +3849,18 @@
                 occupancyData[roomId] = {
                     name: document.getElementById('modalRoomName').value,
                     occupants: [],
-                    disabled: false
+                    disabled: false,
+                    maxOccupancy: parseInt(document.getElementById('maxOccupancyInput').value) || 1
                 };
             }
+            
+            const room = occupancyData[roomId];
             
             // Create person object
             const person = { 
                 name, 
                 role,
-                permanent: true // Default to permanent
+                permanent: true
             };
             
             // Add time-limited fields for visitors and master students
@@ -3790,11 +3882,33 @@
                 person.startDate = startDate;
                 person.endDate = endDate;
                 person.pi = pi;
-                person.permanent = false; // Mark as temporary
+                person.permanent = false;
+                
+                // Check occupancy for the entire date range
+                const maxOccupancyInRange = calculateMaxOccupancyInRange(roomId, startDate, endDate) + 1; // +1 for the new person
+                
+                if (maxOccupancyInRange > room.maxOccupancy) {
+                    const warningDiv = document.getElementById('occupancyWarning');
+                    warningDiv.innerHTML = `Cannot add person: This would exceed the maximum occupancy of ${room.maxOccupancy} during the requested period.`;
+                    warningDiv.style.display = 'block';
+                    return;
+                }
+            } else {
+                // For permanent residents, check current occupancy + 1
+                const currentOccupancy = calculateOccupancyForDate(roomId, selectedDate);
+                if (currentOccupancy >= room.maxOccupancy) {
+                    const warningDiv = document.getElementById('occupancyWarning');
+                    warningDiv.innerHTML = `Cannot add person: Room is at maximum occupancy (${room.maxOccupancy}).`;
+                    warningDiv.style.display = 'block';
+                    return;
+                }
             }
             
+            // Hide warning if we get here
+            document.getElementById('occupancyWarning').style.display = 'none';
+            
             // Check if person already exists
-            const exists = occupancyData[roomId].occupants.some(existing => 
+            const exists = room.occupants.some(existing => 
                 existing.name === person.name && existing.role === person.role
             );
             
@@ -3803,13 +3917,14 @@
                 return;
             }
             
-            occupancyData[roomId].occupants.push(person);
+            room.occupants.push(person);
             
             // Save to database immediately
             saveOccupancyData();
             
             // Update modal display
-            updateModalOccupantsList(occupancyData[roomId].occupants);
+            updateModalOccupantsList(room.occupants);
+            updateOccupancyDisplay();
             
             // Update the main display
             processOccupancyData();
@@ -3915,7 +4030,7 @@
 
 
         // Save to new Supabase structure
-        async function saveToSupabase() {
+       async function saveToSupabase() {
             try {
                 const roomId = document.getElementById('modalRoomId')?.value;
                 if (!roomId || !occupancyData[roomId]) {
@@ -3925,13 +4040,14 @@
                 
                 const room = occupancyData[roomId];
                 
-                // Save room settings
+                // Save room settings (including max_occupancy)
                 await supabase
                     .from('room_settings')
                     .upsert({
                         room_id: roomId,
                         room_name: room.name,
                         disabled: room.disabled || false,
+                        max_occupancy: room.maxOccupancy || 1, // Add this line
                         updated_at: new Date().toISOString()
                     });
                     
@@ -3987,7 +4103,90 @@
             processOccupancyData();
         }
 
-        // Merge data from the three tables
+        // Calculate occupancy for a specific date
+        function calculateOccupancyForDate(roomId, targetDate) {
+            const room = occupancyData[roomId];
+            if (!room) return 0;
+            
+            let count = 0;
+            const checkDate = new Date(targetDate);
+            
+            room.occupants.forEach(person => {
+                if (person.permanent) {
+                    count++;
+                } else if (person.startDate && person.endDate) {
+                    const startDate = new Date(person.startDate);
+                    const endDate = new Date(person.endDate);
+                    if (checkDate >= startDate && checkDate <= endDate) {
+                        count++;
+                    }
+                }
+            });
+            
+            return count;
+        }
+
+        // Calculate occupancy for a date range
+        function calculateMaxOccupancyInRange(roomId, startDate, endDate, excludePerson = null) {
+            let maxOccupancy = 0;
+            const start = new Date(startDate);
+            const end = new Date(endDate);
+            
+            // Check each day in the range
+            for (let date = new Date(start); date <= end; date.setDate(date.getDate() + 1)) {
+                const dateString = date.toISOString().split('T')[0];
+                let dayOccupancy = calculateOccupancyForDate(roomId, dateString);
+                
+                // Exclude the person we're trying to add from the count
+                if (excludePerson && excludePerson.startDate && excludePerson.endDate) {
+                    const personStart = new Date(excludePerson.startDate);
+                    const personEnd = new Date(excludePerson.endDate);
+                    if (date >= personStart && date <= personEnd) {
+                        dayOccupancy--;
+                    }
+                }
+                
+                maxOccupancy = Math.max(maxOccupancy, dayOccupancy);
+            }
+            
+            return maxOccupancy;
+        }
+
+        // Find next available slot for a room
+        function findNextAvailableSlot(roomId) {
+            const room = occupancyData[roomId];
+            if (!room || !room.maxOccupancy) return null;
+            
+            // Get all time-limited people
+            const timeLimitedPeople = room.occupants.filter(person => 
+                !person.permanent && person.endDate
+            );
+            
+            if (timeLimitedPeople.length === 0) return null;
+            
+            // Sort by end date
+            timeLimitedPeople.sort((a, b) => new Date(a.endDate) - new Date(b.endDate));
+            
+            // Find the earliest date when occupancy drops below max
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            
+            for (const person of timeLimitedPeople) {
+                const checkDate = new Date(person.endDate);
+                checkDate.setDate(checkDate.getDate() + 1); // Day after person leaves
+                
+                if (checkDate >= today) {
+                    const occupancyOnDate = calculateOccupancyForDate(roomId, checkDate.toISOString().split('T')[0]);
+                    if (occupancyOnDate < room.maxOccupancy) {
+                        return checkDate.toISOString().split('T')[0];
+                    }
+                }
+            }
+            
+            return null;
+        }
+
+        // Update the mergeOccupancyData function to include max_occupancy
         function mergeOccupancyData(permanentData, temporaryData, roomSettings) {
             const merged = {};
             
@@ -4004,7 +4203,8 @@
                     merged[person.room_id] = {
                         name: roomSetting?.room_name || person.room_name || person.room_id,
                         occupants: [],
-                        disabled: roomSetting?.disabled || person.disabled || false
+                        disabled: roomSetting?.disabled || person.disabled || false,
+                        maxOccupancy: roomSetting?.max_occupancy || 1 // Add this line
                     };
                 }
                 
@@ -4023,7 +4223,8 @@
                     merged[person.room_id] = {
                         name: roomSetting?.room_name || person.room_name || person.room_id,
                         occupants: [],
-                        disabled: roomSetting?.disabled || false
+                        disabled: roomSetting?.disabled || false,
+                        maxOccupancy: roomSetting?.max_occupancy || 1 // Add this line
                     };
                 }
                 
@@ -4043,7 +4244,8 @@
                     merged[roomSetting.room_id] = {
                         name: roomSetting.room_name,
                         occupants: [],
-                        disabled: roomSetting.disabled
+                        disabled: roomSetting.disabled,
+                        maxOccupancy: roomSetting.max_occupancy || 1 // Add this line
                     };
                 }
             });
@@ -4115,9 +4317,10 @@
 
         // Update the updateIncomingPeopleSection to work with new structure
         function updateIncomingPeopleSection() {
-            const targetDate = new Date(selectedDate);
             const today = new Date();
-            today.setHours(0, 0, 0, 0);
+            const tomorrow = new Date(today);
+            tomorrow.setDate(today.getDate() + 1);
+            tomorrow.setHours(0, 0, 0, 0);
             
             const incomingPeople = [];
             
@@ -4128,8 +4331,8 @@
                         if (!person.permanent && person.startDate && person.endDate) {
                             const startDate = new Date(person.startDate);
                             
-                            // Show if start date is in the future from today
-                            if (startDate > today) {
+                            // Show if start date is tomorrow or later
+                            if (startDate >= tomorrow) {
                                 incomingPeople.push({
                                     ...person,
                                     roomId: roomId,
@@ -4159,7 +4362,7 @@
             list.innerHTML = incomingPeople.map(person => {
                 const roleColor = roleColors[person.role] || '#e5e7eb';
                 const startDate = new Date(person.startDate);
-                const isStartingSoon = (startDate - today) / (1000 * 60 * 60 * 24) <= 7;
+                const isStartingSoon = (startDate - tomorrow) / (1000 * 60 * 60 * 24) <= 7;
                 
                 return `
                     <div class="incoming-person-card ${isStartingSoon ? 'starting-soon' : ''}" style="border-color: ${roleColor};">
