@@ -3281,7 +3281,7 @@
         // Global variables
         let isAdminMode = false;
         let occupancyData = {};
-        const selectedDate = new Date().toISOString().split('T')[0];
+        let selectedDate = new Date().toISOString().split('T')[0];
         let supabase = null;
 
         // Color mapping for different roles
@@ -3428,7 +3428,7 @@
         // Load occupancy data from new table structure
         async function loadOccupancyData() {
             // Always use current date
-            selectedDate = new Date().toISOString().split('T')[0];
+            //selectedDate = new Date().toISOString().split('T')[0];
             
             if (supabase) {
                 await loadFromSupabase();
@@ -4057,12 +4057,17 @@
             // Update the main display
             processOccupancyData();
             
-            // Clear form
-            document.getElementById('newPersonName').value = '';
-            document.getElementById('newPersonStartDate').value = '';
-            document.getElementById('newPersonEndDate').value = '';
-            document.getElementById('newPersonPI').value = '';
-            
+            // Clear form with null checks
+            const clearFormField = (elementId) => {
+                const element = document.getElementById(elementId);
+                if (element) element.value = '';
+            };
+
+            clearFormField('newPersonName');
+            clearFormField('newPersonStartDate');
+            clearFormField('newPersonEndDate');
+            clearFormField('newPersonPI');
+                        
             showNotification('Person added successfully');
         }
 
