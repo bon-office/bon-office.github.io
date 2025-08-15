@@ -4179,19 +4179,22 @@
             
             const room = occupancyData[roomId];
             
-            // Create person object
+            // Create person object with correct initial permanent flag
+            const isTemporaryRole = (role === 'Visitor' || role === 'Master student');
+            
             const person = { 
                 name, 
                 role,
-                permanent: true
+                permanent: !isTemporaryRole  // Fix: Set permanent correctly from the start
             };
             
-            // Handle time-limited roles
-            if (role === 'Visitor' || role === 'Master student') {
+            // Handle time-limited roles (Visitors and Master students)
+            if (isTemporaryRole) {
                 const startDate = document.getElementById('newPersonStartDate')?.value;
                 const endDate = document.getElementById('newPersonEndDate')?.value;
                 const pi = document.getElementById('newPersonPI')?.value?.trim();
                 
+                // Validate required fields for temporary roles
                 if (!startDate || !endDate) {
                     showNotification('Please provide start and end dates for this role', 'error');
                     return;
@@ -4202,10 +4205,19 @@
                     return;
                 }
                 
+                // Validate date logic
+                if (new Date(startDate) > new Date(endDate)) {
+                    showNotification('Start date cannot be after end date', 'error');
+                    return;
+                }
+                
+                // Set temporary person properties
                 person.startDate = startDate;
                 person.endDate = endDate;
                 person.pi = pi;
-                person.permanent = false; // Temporary occupant
+                person.permanent = false; // Ensure this is explicitly set
+                
+                console.log('Creating temporary person:', person); // Debug log
                 
                 // Validation for temporary roles: Check for date overlap conflicts
                 const conflictResult = checkTemporaryPersonConflicts(roomId, startDate, endDate, editingPersonIndex);
@@ -4218,6 +4230,9 @@
                     return;
                 }
             } else {
+                // Handle permanent roles
+                console.log('Creating permanent person:', person); // Debug log
+                
                 // Validation for permanent roles: Check if room will ever be full in the future
                 const futureFullPeriods = checkPermanentPersonConflicts(roomId, editingPersonIndex);
                 if (futureFullPeriods.hasConflict) {
@@ -4229,6 +4244,9 @@
                     return;
                 }
             }
+            
+            // Log the person object before saving to debug
+            console.log('Final person object before saving:', person);
             
             // Check if we're editing or adding
             if (editingPersonIndex >= 0) {
@@ -4247,10 +4265,12 @@
             // CRITICAL: Save the data immediately
             try {
                 console.log('Saving person:', person, 'to room:', roomId);
+                console.log('Person is temporary:', !person.permanent, 'Role:', person.role);
                 saveOccupancyData(); // This should save to both Supabase and localStorage
             } catch (error) {
                 console.error('Failed to save person:', error);
                 showNotification('Error saving data', 'error');
+                return; // Don't update UI if save failed
             }
             
             // Update the UI
@@ -4493,9 +4513,11 @@
         }
 
 
-        // Save to new Supabase structure
-       async function saveToSupabase() {
+        // Save to new Supabase structure with improved debugging
+        async function saveToSupabase() {
             try {
+                console.log('Starting Supabase save operation...');
+                
                 // Save all rooms that have been modified
                 for (const [roomId, roomData] of Object.entries(occupancyData)) {
                     if (!roomData || !roomId) continue;
@@ -4516,33 +4538,70 @@
                     // Save occupants
                     if (roomData.occupants && roomData.occupants.length > 0) {
                         for (const person of roomData.occupants) {
-                            if (person.permanent || (person.role !== 'Visitor' && person.role !== 'Master student')) {
-                                // Save to permanent_occupants
-                                await supabase
-                                    .from('permanent_occupants')
-                                    .upsert({
-                                        room_id: roomId,
-                                        room_name: roomData.name,
-                                        name: person.name,
-                                        role: person.role,
-                                        pi: person.pi || null,
-                                        disabled: roomData.disabled || false,
-                                        updated_at: new Date().toISOString()
-                                    });
-                            } else {
+                            console.log(`Processing person:`, person);
+                            console.log(`Person permanent flag:`, person.permanent);
+                            console.log(`Person role:`, person.role);
+                            
+                            // Determine if this person should be saved as temporary or permanent
+                            const isTemporary = !person.permanent && 
+                                              (person.role === 'Visitor' || person.role === 'Master student') &&
+                                              person.startDate && person.endDate;
+                            
+                            console.log(`Will save as temporary:`, isTemporary);
+                            
+                            if (isTemporary) {
                                 // Save to temporary_occupants
-                                await supabase
+                                console.log(`Saving ${person.name} to temporary_occupants table`);
+                                
+                                const temporaryData = {
+                                    room_id: roomId,
+                                    room_name: roomData.name,
+                                    name: person.name,
+                                    role: person.role,
+                                    pi: person.pi || null,
+                                    start_date: person.startDate,
+                                    end_date: person.endDate,
+                                    updated_at: new Date().toISOString()
+                                };
+                                
+                                console.log(`Temporary data to save:`, temporaryData);
+                                
+                                const { data, error } = await supabase
                                     .from('temporary_occupants')
-                                    .upsert({
-                                        room_id: roomId,
-                                        room_name: roomData.name,
-                                        name: person.name,
-                                        role: person.role,
-                                        pi: person.pi || null,
-                                        start_date: person.startDate,
-                                        end_date: person.endDate,
-                                        updated_at: new Date().toISOString()
-                                    });
+                                    .upsert(temporaryData);
+                                    
+                                if (error) {
+                                    console.error(`Error saving temporary person ${person.name}:`, error);
+                                    throw error;
+                                } else {
+                                    console.log(`Successfully saved temporary person ${person.name}`, data);
+                                }
+                            } else {
+                                // Save to permanent_occupants
+                                console.log(`Saving ${person.name} to permanent_occupants table`);
+                                
+                                const permanentData = {
+                                    room_id: roomId,
+                                    room_name: roomData.name,
+                                    name: person.name,
+                                    role: person.role,
+                                    pi: person.pi || null,
+                                    disabled: roomData.disabled || false,
+                                    updated_at: new Date().toISOString()
+                                };
+                                
+                                console.log(`Permanent data to save:`, permanentData);
+                                
+                                const { data, error } = await supabase
+                                    .from('permanent_occupants')
+                                    .upsert(permanentData);
+                                    
+                                if (error) {
+                                    console.error(`Error saving permanent person ${person.name}:`, error);
+                                    throw error;
+                                } else {
+                                    console.log(`Successfully saved permanent person ${person.name}`, data);
+                                }
                             }
                         }
                     }
