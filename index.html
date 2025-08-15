@@ -27,10 +27,11 @@
             margin: 0;
             padding: 0;
             box-sizing: border-box;
+            font-family: 'DM Sans', sans-serif !important; /* Force DM Sans everywhere */
         }
 
         body {
-            font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            font-family: 'DM Sans', sans-serif;
             background: #fafafa;
             color: #333;
             line-height: 1.5;
@@ -3836,7 +3837,7 @@
             updateModalIncomingList(room.occupants || [], roomId); 
             
             // Update occupancy display
-            updateOccupancyDisplay();
+            updateOccupancyDisplay(roomId);
             
             modal.style.display = 'block';
 
@@ -3950,7 +3951,8 @@
             
             // Set up max occupancy change handler
             document.getElementById('maxOccupancyInput').addEventListener('input', function() {
-                updateOccupancyDisplay();
+                const roomId = document.getElementById('modalRoomId').value;
+                updateOccupancyDisplay(roomId);
             });
             
             return document.getElementById('workspaceModal');
