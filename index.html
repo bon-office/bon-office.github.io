@@ -3637,12 +3637,11 @@
                     .from('permanent_occupants')
                     .select('*');
                     
-                // Load temporary occupants filtered by today's date only
+                // Load ALL temporary occupants (not filtered by date)
+                // We'll filter current vs incoming in JavaScript
                 const { data: temporaryData, error: temporaryError } = await supabase
                     .from('temporary_occupants')
-                    .select('*')
-                    .lte('start_date', today)
-                    .gte('end_date', today);
+                    .select('*');
                     
                 // Load room settings
                 const { data: roomSettings, error: roomError } = await supabase
