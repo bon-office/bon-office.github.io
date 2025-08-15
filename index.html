@@ -3098,7 +3098,7 @@
                 </div>
 
                 <div id="incomingPeopleSection" class="incoming-people-section" style="display: none;">
-                    <h2>Incoming people</h2>
+                    <h2>Incoming </h2>
                 <div id="incomingPeopleList" class="incoming-people-list"></div>
             </div>
             </div>
@@ -3305,10 +3305,23 @@
         }
 
         // Initialize the application
+        function initializeApplication() {
             console.log('DOM loaded, initializing application...');
             
-            // Set today's date as default
-            document.getElementById('datePicker').value = selectedDate;
+            // Set today's date as default - WITH NULL CHECK
+            const datePicker = document.getElementById('datePicker');
+            if (datePicker) {
+                datePicker.value = selectedDate;
+            } else {
+                console.warn('datePicker element not found in DOM');
+                // Try to wait for it to load
+                setTimeout(() => {
+                    const retryDatePicker = document.getElementById('datePicker');
+                    if (retryDatePicker) {
+                        retryDatePicker.value = selectedDate;
+                    }
+                }, 100);
+            }
             
             // Initialize Supabase
             initializeSupabase();
@@ -3324,6 +3337,19 @@
             
             // Auto-save setup
             setupAutoSave();
+        }
+
+        // Make sure this runs after DOM is completely loaded
+        document.addEventListener('DOMContentLoaded', initializeApplication);
+
+        // Also add a backup with window.onload
+        window.addEventListener('load', function() {
+            // If datePicker still doesn't exist, try one more time
+            const datePicker = document.getElementById('datePicker');
+            if (datePicker && !datePicker.value) {
+                datePicker.value = selectedDate;
+            }
+        });
 
         // Initialize Supabase connection
         function initializeSupabase() {
@@ -3935,22 +3961,28 @@
         }
 
         function addOrEditPerson() {
-            const name = document.getElementById('newPersonName').value.trim();
-            const role = document.getElementById('newPersonRole').value;
-            const roomId = document.getElementById('modalRoomId').value;
+            const name = document.getElementById('newPersonName')?.value?.trim();
+            const role = document.getElementById('newPersonRole')?.value;
+            const roomId = document.getElementById('modalRoomId')?.value;
             
+            // Validate required fields
             if (!name) {
                 showNotification('Please enter a name', 'error');
+                return;
+            }
+            
+            if (!roomId) {
+                showNotification('No room selected', 'error');
                 return;
             }
             
             // Initialize room if it doesn't exist
             if (!occupancyData[roomId]) {
                 occupancyData[roomId] = {
-                    name: document.getElementById('modalRoomName').value,
+                    name: document.getElementById('modalRoomName')?.value || roomId,
                     occupants: [],
                     disabled: false,
-                    maxOccupancy: parseInt(document.getElementById('maxOccupancyInput').value) || 1
+                    maxOccupancy: parseInt(document.getElementById('maxOccupancyInput')?.value) || 1
                 };
             }
             
@@ -3963,10 +3995,11 @@
                 permanent: true
             };
             
+            // Handle time-limited roles
             if (role === 'Visitor' || role === 'Master student') {
-                const startDate = document.getElementById('newPersonStartDate').value;
-                const endDate = document.getElementById('newPersonEndDate').value;
-                const pi = document.getElementById('newPersonPI').value.trim();
+                const startDate = document.getElementById('newPersonStartDate')?.value;
+                const endDate = document.getElementById('newPersonEndDate')?.value;
+                const pi = document.getElementById('newPersonPI')?.value?.trim();
                 
                 if (!startDate || !endDate) {
                     showNotification('Please provide start and end dates for this role', 'error');
@@ -3981,43 +4014,39 @@
                 person.startDate = startDate;
                 person.endDate = endDate;
                 person.pi = pi;
-                person.permanent = false;
-                
-                // Check for future conflicts
-                const conflictCheck = checkFutureOccupancyConflicts(roomId, startDate, endDate, editingPersonIndex);
-                
-                if (conflictCheck.hasConflict) {
-                    const warningDiv = document.getElementById('occupancyWarning');
-                    if (conflictCheck.conflictDates.length === 1) {
-                        warningDiv.innerHTML = `Cannot add person: Room will be at maximum occupancy on ${conflictCheck.firstConflict}.`;
-                    } else {
-                        warningDiv.innerHTML = `Cannot add person: Room will be at maximum occupancy from ${conflictCheck.firstConflict} to ${conflictCheck.lastConflict}.`;
-                    }
-                    warningDiv.style.display = 'block';
-                    return;
-                }
-            } else {
-                // For permanent residents, check current occupancy + 1
-                const currentOccupancy = calculateOccupancyForDate(roomId, selectedDate);
-                if (currentOccupancy >= room.maxOccupancy && editingPersonIndex === -1) {
-                    const warningDiv = document.getElementById('occupancyWarning');
-                    warningDiv.innerHTML = `Cannot add person: Room is at maximum occupancy (${room.maxOccupancy}).`;
-                    warningDiv.style.display = 'block';
-                    return;
-                }
+                person.permanent = false; // Temporary occupant
             }
             
-            // Mark as changed and update display
-            markAsChanged();
+            // Check if we're editing or adding
+            if (editingPersonIndex >= 0) {
+                // Editing existing person
+                room.occupants[editingPersonIndex] = person;
+                showNotification('Person updated successfully', 'success');
+            } else {
+                // Adding new person
+                room.occupants.push(person);
+                showNotification('Person added successfully', 'success');
+            }
+            
+            // Update the room data
+            occupancyData[roomId] = room;
+            
+            // CRITICAL: Save the data immediately
+            try {
+                console.log('Saving person:', person, 'to room:', roomId);
+                saveOccupancyData(); // This should save to both Supabase and localStorage
+            } catch (error) {
+                console.error('Failed to save person:', error);
+                showNotification('Error saving data', 'error');
+            }
+            
+            // Update the UI
             updateModalOccupantsList(room.occupants);
-            updateOccupancyDisplay();
             processOccupancyData();
+            markAsChanged();
             
-            // Clear form
+            // Clear the form for next entry
             clearPersonForm();
-            
-            // Hide warning if visible
-            document.getElementById('occupancyWarning').style.display = 'none';
         }
 
         // Function to check for future occupancy conflicts
@@ -4139,84 +4168,105 @@
 
         // Simplified save function
         async function saveOccupancyData() {
+            console.log('Starting save operation...', occupancyData);
+            
+            let savedToSupabase = false;
+            
+            // Try to save to Supabase first
             try {
                 if (supabase) {
                     await saveToSupabase();
+                    savedToSupabase = true;
+                    console.log('Successfully saved to Supabase');
                 }
-                saveToLocalStorage();
             } catch (error) {
-                console.error('Save error:', error);
+                console.error('Supabase save error:', error);
+                showNotification('Failed to save to database, saved locally instead', 'warning');
+            }
+            
+            // Always save to localStorage as backup
+            try {
                 saveToLocalStorage();
-                showNotification('Saved locally (offline mode)', 'warning');
+                console.log('Successfully saved to localStorage');
+                
+                if (!savedToSupabase) {
+                    showNotification('Saved locally (offline mode)', 'warning');
+                } else {
+                    showNotification('Data saved successfully', 'success');
+                }
+            } catch (error) {
+                console.error('LocalStorage save error:', error);
+                showNotification('Failed to save data', 'error');
             }
         }
 
         // Keep localStorage as backup (simplified)
         function saveToLocalStorage() {
-            localStorage.setItem(`occupancy_data_backup`, JSON.stringify(occupancyData));
+            const dataKey = `occupancy_data_backup`;
+            localStorage.setItem(dataKey, JSON.stringify(occupancyData));
+            console.log('Data saved to localStorage with key:', dataKey);
         }
 
 
         // Save to new Supabase structure
        async function saveToSupabase() {
             try {
-                const roomId = document.getElementById('modalRoomId')?.value;
-                if (!roomId || !occupancyData[roomId]) {
-                    console.warn('No room data to save');
-                    return;
-                }
-                
-                const room = occupancyData[roomId];
-                
-                // Save room settings (including max_occupancy)
-                await supabase
-                    .from('room_settings')
-                    .upsert({
-                        room_id: roomId,
-                        room_name: room.name,
-                        disabled: room.disabled || false,
-                        max_occupancy: room.maxOccupancy || 1, // Add this line
-                        updated_at: new Date().toISOString()
-                    });
+                // Save all rooms that have been modified
+                for (const [roomId, roomData] of Object.entries(occupancyData)) {
+                    if (!roomData || !roomId) continue;
                     
-                // Save occupants to appropriate tables
-                if (room.occupants) {
-                    for (const person of room.occupants) {
-                        if (person.permanent || (person.role !== 'Visitor' && person.role !== 'Master student')) {
-                            // Save to permanent_occupants
-                            await supabase
-                                .from('permanent_occupants')
-                                .upsert({
-                                    room_id: roomId,
-                                    room_name: room.name,
-                                    name: person.name,
-                                    role: person.role,
-                                    pi: person.pi,
-                                    disabled: room.disabled || false,
-                                    updated_at: new Date().toISOString()
-                                });
-                        } else {
-                            // Save to temporary_occupants
-                            await supabase
-                                .from('temporary_occupants')
-                                .upsert({
-                                    room_id: roomId,
-                                    room_name: room.name,
-                                    name: person.name,
-                                    role: person.role,
-                                    pi: person.pi,
-                                    start_date: person.startDate,
-                                    end_date: person.endDate,
-                                    updated_at: new Date().toISOString()
-                                });
+                    console.log(`Saving room ${roomId}:`, roomData);
+                    
+                    // Save room settings
+                    await supabase
+                        .from('room_settings')
+                        .upsert({
+                            room_id: roomId,
+                            room_name: roomData.name,
+                            disabled: roomData.disabled || false,
+                            max_occupancy: roomData.maxOccupancy || 1,
+                            updated_at: new Date().toISOString()
+                        });
+                        
+                    // Save occupants
+                    if (roomData.occupants && roomData.occupants.length > 0) {
+                        for (const person of roomData.occupants) {
+                            if (person.permanent || (person.role !== 'Visitor' && person.role !== 'Master student')) {
+                                // Save to permanent_occupants
+                                await supabase
+                                    .from('permanent_occupants')
+                                    .upsert({
+                                        room_id: roomId,
+                                        room_name: roomData.name,
+                                        name: person.name,
+                                        role: person.role,
+                                        pi: person.pi || null,
+                                        disabled: roomData.disabled || false,
+                                        updated_at: new Date().toISOString()
+                                    });
+                            } else {
+                                // Save to temporary_occupants
+                                await supabase
+                                    .from('temporary_occupants')
+                                    .upsert({
+                                        room_id: roomId,
+                                        room_name: roomData.name,
+                                        name: person.name,
+                                        role: person.role,
+                                        pi: person.pi || null,
+                                        start_date: person.startDate,
+                                        end_date: person.endDate,
+                                        updated_at: new Date().toISOString()
+                                    });
+                            }
                         }
                     }
                 }
                 
-                console.log('Data saved to Supabase successfully');
+                console.log('All data saved to Supabase successfully');
                 
             } catch (error) {
-                console.warn('Failed to save to Supabase:', error);
+                console.error('Supabase save error:', error);
                 throw error;
             }
         }
@@ -4427,12 +4477,6 @@
         // Setup keyboard shortcuts
         function setupKeyboardShortcuts() {
             document.addEventListener('keydown', function(e) {
-                // Ctrl/Cmd + A: Toggle Admin Mode
-                if ((e.ctrlKey || e.metaKey) && e.key === 'a') {
-                    e.preventDefault();
-                    toggleAdminMode();
-                }
-                
                 // Escape: Close modal
                 if (e.key === 'Escape') {
                     closeWorkspaceModal();
