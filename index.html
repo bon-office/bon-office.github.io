@@ -20,6 +20,9 @@
     <script src="config.js"></script>
 
     <style>
+        /* ============================================
+           RESET & BASE STYLES
+        ============================================ */
         * {
             margin: 0;
             padding: 0;
@@ -33,7 +36,9 @@
             line-height: 1.5;
         }
 
-        /* Login overlay styles */
+        /* ============================================
+           LOGIN OVERLAY
+        ============================================ */
         .login-overlay {
             position: fixed;
             top: 0;
@@ -62,32 +67,6 @@
             margin-bottom: 1.5rem;
             color: #1f2937;
             font-size: 1.5rem;
-        }
-
-        .login-form .form-group {
-            margin-bottom: 1rem;
-        }
-
-        .login-form .form-group label {
-            display: block;
-            margin-bottom: 0.5rem;
-            font-weight: 500;
-            color: #374151;
-        }
-
-        .login-form .form-group input {
-            width: 100%;
-            padding: 0.75rem;
-            border: 1px solid #d1d5db;
-            border-radius: 8px;
-            font-size: 0.875rem;
-            outline: none;
-            transition: border-color 0.2s;
-        }
-
-        .login-form .form-group input:focus {
-            border-color: #3b82f6;
-            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
         }
 
         .login-btn {
@@ -122,7 +101,9 @@
             font-size: 0.875rem;
         }
 
-        /* Hide main content initially */
+        /* ============================================
+           MAIN CONTENT
+        ============================================ */
         .main-content {
             display: none;
         }
@@ -131,6 +112,9 @@
             display: block;
         }
 
+        /* ============================================
+           HEADER
+        ============================================ */
         .header {
             background: white;
             border-bottom: 1px solid #e5e5e5;
@@ -163,33 +147,6 @@
             flex-wrap: wrap;
         }
 
-        .date-group {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 0.25rem;
-        }
-
-        .date-label {
-            font-size: 0.75rem;
-            color: #6b7280;
-            text-align: center;
-        }
-
-        .date-picker {
-            padding: 0.5rem;
-            border: 1px solid #d1d5db;
-            border-radius: 8px;
-            font-size: 0.875rem;
-            outline: none;
-            transition: border-color 0.2s;
-        }
-
-        .date-picker:focus {
-            border-color: #3b82f6;
-            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
-        }
-
         .admin-btn {
             padding: 0.5rem 1rem;
             background: #ffb3ba;
@@ -210,6 +167,9 @@
             border-color: #7f1d1d;
         }
 
+        /* ============================================
+           LEGEND
+        ============================================ */
         .legend {
             background: white;
             padding: 1rem 2rem;
@@ -238,6 +198,9 @@
             border: 1px solid rgba(0,0,0,0.1);
         }
 
+        /* ============================================
+           MAIN CONTAINER & SVG
+        ============================================ */
         .main-container {
             max-width: 1600px;
             margin: 0 auto;
@@ -275,7 +238,9 @@
             font-style: italic;
         }
 
-        /* Workspace styles */
+        /* ============================================
+           WORKSPACE STYLES
+        ============================================ */
         .workspace {
             cursor: pointer;
             transition: all 0.2s ease;
@@ -310,12 +275,9 @@
             animation: pulse 1.5s infinite;
         }
 
-        @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.7; }
-        }
-
-        /* Static floor elements */
+        /* ============================================
+           FLOOR GRAPHICS
+        ============================================ */
         .floor-graphics {
             fill: #f8fafc;
             stroke: #e2e8f0;
@@ -323,7 +285,6 @@
             pointer-events: none;
         }
 
-        /* Room labels */
         .room-label {
             font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             font-size: 5px;
@@ -334,7 +295,6 @@
             dominant-baseline: central;
         }
 
-        /* Occupancy indicators */
         .occupancy-indicator {
             font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             font-size: 5px;
@@ -345,7 +305,9 @@
             dominant-baseline: central;
         }
 
-        /* Tooltip */
+        /* ============================================
+           TOOLTIP
+        ============================================ */
         .tooltip {
             position: absolute;
             background: #1f2937;
@@ -376,7 +338,9 @@
             line-height: 1.4;
         }
 
-        /* Modal */
+        /* ============================================
+           MODAL STYLES
+        ============================================ */
         .modal {
             display: none;
             position: fixed;
@@ -397,11 +361,16 @@
             background: white;
             padding: 2rem;
             border-radius: 12px;
-            max-width: 500px;
+            max-width: 90vw; /* Allow modals to be wider by default */
             width: 90%;
             box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1), 0 10px 10px -5px rgba(0,0,0,0.04);
             max-height: 80vh;
             overflow-y: auto;
+        }
+
+        /* Standard single-column modal sizing */
+        .modal-content:not(.modal-two-column) {
+            max-width: 500px;
         }
 
         .modal h3 {
@@ -411,6 +380,109 @@
             color: #1f2937;
         }
 
+        /* ============================================
+           ENHANCED MODAL FOR 2-COLUMN LAYOUT
+        ============================================ */
+        .modal .modal-content.modal-two-column,
+        .modal-two-column .modal-content {
+            max-width: 1260px !important; /* 30% smaller than 1800px */
+            width: 70% !important; /* 30% smaller than 98% */
+            max-height: 90vh !important; /* Force override - Taller modal */
+            min-height: 700px !important; /* Force override - Ensure minimum height */
+            padding: 2.5rem !important; /* Force override - More padding */
+        }
+
+        .modal-layout {
+            display: grid;
+            grid-template-columns: 1.3fr 1fr; /* Left column wider for occupants list */
+            gap: 4rem; /* Much more space between columns */
+            margin-top: 1.5rem;
+        }
+
+        .modal-left-column {
+            border-right: 1px solid #e5e7eb;
+            padding-right: 3rem; /* More padding */
+        }
+
+        .modal-right-column {
+            padding-left: 2rem; /* More padding */
+        }
+
+        /* ============================================
+           OCCUPANTS LIST STYLING
+        ============================================ */
+        .occupants-list-styled {
+            border-radius: 8px;
+            max-height: 450px; /* Taller for better visibility */
+            overflow-y: auto;
+            margin-bottom: 1.5rem;
+        }
+
+        .occupant-item-styled {
+            background: white;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            padding: 1.2rem; /* More padding for readability */
+            margin-bottom: 0.75rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: all 0.2s ease;
+            min-height: 85px; /* Consistent height */
+        }
+
+        .occupant-item-styled:last-child {
+            margin-bottom: 0;
+        }
+
+        .occupant-item-styled:hover {
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            transform: translateY(-1px);
+        }
+
+        .occupant-item-styled.starting-soon {
+            background: #fffbeb;
+            border-width: 3px;
+        }
+
+        .occupant-item-styled .occupant-info {
+            flex: 1;
+        }
+
+        .occupant-item-styled .occupant-name {
+            font-weight: 600;
+            color: #1f2937;
+            margin-bottom: 0.5rem;
+            font-size: 1rem; /* Larger text */
+        }
+
+        .occupant-item-styled .occupant-details {
+            font-size: 0.85rem; /* Larger detail text */
+            color: #6b7280;
+            line-height: 1.5;
+        }
+
+        .occupant-item-styled .remove-btn {
+            padding: 0.6rem 0.9rem; /* Larger buttons */
+            background: #f3f4f6;
+            color: #374151;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            margin-left: 0.6rem;
+            min-width: 70px;
+        }
+
+        .occupant-item-styled .remove-btn:hover {
+            background: #e5e7eb;
+            border-color: #9ca3af;
+        }
+
+        /* ============================================
+           FORM STYLES
+        ============================================ */
         .form-group {
             margin-bottom: 1rem;
         }
@@ -449,6 +521,170 @@
             margin-bottom: 1rem;
         }
 
+        /* ============================================
+           RIGHT COLUMN FORM STYLES
+        ============================================ */
+        .modal-right-column .form-group {
+            margin-bottom: 1.2rem; /* More spacing */
+        }
+
+        .modal-right-column .form-group label {
+            font-size: 0.9rem; /* Slightly larger */
+            font-weight: 500;
+            color: #374151;
+        }
+
+        .modal-right-column .form-group input,
+        .modal-right-column .form-group select {
+            padding: 0.7rem; /* More padding */
+            border-radius: 6px;
+            font-size: 0.9rem; /* Larger text */
+        }
+
+        .time-limited-fields {
+            display: none;
+            margin-top: 0.5rem;
+        }
+
+        .time-limited-fields.show {
+            display: block;
+        }
+
+        .date-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.6rem; /* More spacing */
+            margin-bottom: 1rem;
+        }
+
+        /* ============================================
+           LEFT COLUMN SPECIFIC STYLES
+        ============================================ */
+        .modal-left-column .form-group label {
+            font-size: 0.9rem; /* Larger */
+            font-weight: 600;
+            color: #374151;
+        }
+
+        .modal-left-column .room-name-input {
+            font-size: 0.9rem; /* Larger */
+            padding: 0.6rem; /* More padding */
+        }
+
+        #occupancyInfo {
+            font-size: 0.9rem; /* Larger */
+            padding: 0.75rem; /* More padding */
+            background: #f3f4f6;
+            border-radius: 6px;
+            margin-bottom: 1rem;
+        }
+
+        #currentOccupancyText {
+            font-weight: 600;
+            color: #1f2937;
+        }
+
+        /* ============================================
+           BUTTON STYLES
+        ============================================ */
+        .btn {
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 8px;
+            font-size: 0.875rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-primary {
+            background: #3b82f6;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #2563eb;
+        }
+
+        .btn-secondary {
+            background: #f3f4f6;
+            color: #374151;
+        }
+
+        .btn-secondary:hover {
+            background: #e5e7eb;
+        }
+
+        .btn-danger {
+            background: #ef4444;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #dc2626;
+        }
+
+        .modal-buttons {
+            display: flex;
+            gap: 0.75rem;
+            justify-content: flex-end;
+            margin-top: 1.5rem;
+        }
+
+        .modal-right-column .modal-buttons {
+            flex-direction: column;
+            gap: 0.8rem; /* More spacing */
+        }
+
+        .modal-right-column .btn {
+            width: 100%;
+            padding: 0.8rem 1rem; /* Larger buttons */
+            font-size: 0.9rem; /* Larger text */
+        }
+
+        /* ============================================
+           ADMIN OPTIONS
+        ============================================ */
+        .admin-options {
+            display: none;
+            border-top: 1px solid #e5e7eb;
+            padding-top: 1rem;
+            margin-top: 1rem;
+        }
+
+        .admin-options.show {
+            display: block;
+        }
+
+        .admin-option-btn {
+            display: block;
+            width: 100%;
+            padding: 0.75rem;
+            margin-bottom: 0.5rem;
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .admin-option-btn:hover {
+            background: #f1f5f9;
+        }
+
+        .admin-option-btn.danger {
+            background: #fef2f2;
+            color: #ffb3ba;
+            border-color: #fecaca;
+        }
+
+        .admin-option-btn.danger:hover {
+            background: #fee2e2;
+        }
+
+        /* ============================================
+           OCCUPANTS LIST (LEGACY)
+        ============================================ */
         .occupants-list {
             border: 1px solid #e5e7eb;
             border-radius: 8px;
@@ -498,103 +734,70 @@
             background: #fee2e2;
         }
 
-        .admin-options {
-            display: none;
-            border-top: 1px solid #e5e7eb;
-            padding-top: 1rem;
-            margin-top: 1rem;
+        /* ============================================
+           SCROLLBAR STYLING
+        ============================================ */
+        .occupants-list-styled::-webkit-scrollbar {
+            width: 8px; /* Slightly wider */
         }
 
-        .admin-options.show {
-            display: block;
+        .occupants-list-styled::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 4px;
         }
 
-        .admin-option-btn {
-            display: block;
-            width: 100%;
-            padding: 0.75rem;
-            margin-bottom: 0.5rem;
-            background: #f8fafc;
-            border: 1px solid #e2e8f0;
-            border-radius: 6px;
-            cursor: pointer;
-            transition: all 0.2s;
+        .occupants-list-styled::-webkit-scrollbar-thumb {
+            background: #c1c1c1;
+            border-radius: 4px;
         }
 
-        .admin-option-btn:hover {
-            background: #f1f5f9;
+        .occupants-list-styled::-webkit-scrollbar-thumb:hover {
+            background: #a8a8a8;
         }
 
-        .admin-option-btn.danger {
-            background: #fef2f2;
-            color: #ffb3ba;
-            border-color: #fecaca;
-        }
-
-        .admin-option-btn.danger:hover {
-            background: #fee2e2;
-        }
-
-        .modal-buttons {
-            display: flex;
-            gap: 0.75rem;
-            justify-content: flex-end;
-            margin-top: 1.5rem;
-        }
-
-        .btn {
-            padding: 0.75rem 1.5rem;
-            border: none;
+        /* ============================================
+           INCOMING PEOPLE STYLES
+        ============================================ */
+        .incoming-person-card {
+            position: relative;
+            background: white;
+            border: 2px solid #e5e7eb;
             border-radius: 8px;
-            font-size: 0.875rem;
-            font-weight: 500;
-            cursor: pointer;
-            transition: all 0.2s;
+            padding: 1rem;
+            margin-bottom: 0.5rem;
         }
 
-        .btn-primary {
-            background: #3b82f6;
-            color: white;
+        .incoming-person-card.starting-soon {
+            border-color: #ffb3ba;
         }
 
-        .btn-primary:hover {
-            background: #bae1ff;
+        .incoming-person-name {
+            font-weight: 600;
+            color: #000;
+            margin-bottom: 0.5rem;
         }
 
-        .btn-secondary {
-            background: #f3f4f6;
-            color: #374151;
+        .incoming-person-details {
+            color: #000;
+            line-height: 1.4;
         }
 
-        .btn-secondary:hover {
-            background: #e5e7eb;
+        .incoming-people-section {
+            animation: fadeIn 0.3s ease-in-out;
         }
 
-        .btn-danger {
-            background: #ef4444;
-            color: white;
+        .occupant-item.starting-soon {
+            border-left: 4px solid #f59e0b;
+            background: #fffbeb;
         }
 
-        .btn-danger:hover {
-            background: #ffb3ba;
+        .starting-soon .occupant-name {
+            color: #d97706;
         }
 
-        .time-limited-fields {
-            display: none;
-            margin-top: 0.5rem;
-        }
-
-        .time-limited-fields.show {
-            display: block;
-        }
-
-        .date-row {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 0.5rem;
-            margin-bottom: 1rem;
-        }
-
+        /* ============================================
+           MESSAGE STYLES
+        ============================================ */
         .error-message {
             color: #ffb3ba;
             background: #fef2f2;
@@ -613,60 +816,12 @@
             margin: 1rem 0;
         }
 
-    
-        .incoming-person-card {
-            position: relative;
-            background: white;
-            border: 2px solid #e5e7eb;
-            border-radius: 8px;
-            padding: 1rem;
-            margin-bottom: 0.5rem;
-        }
-
-        .incoming-person-card.starting-soon {
-            border-color: #ffb3ba;
-        }
-
-        /* Remove the bell icon */
-        .incoming-person-card.starting-soon::before {
-            display: none;
-        }
-
-        .incoming-person-name {
-            font-weight: 600;
-            color: #000;
-            margin-bottom: 0.5rem;
-        }
-
-        .incoming-person-details {
-            color: #000;
-            line-height: 1.4;
-        }
-
-        .incoming-person-room {
-            color: #000;
-        }
-
-        .dates-row {
-            display: flex;
-            gap: 1rem;
-            margin: 0.25rem 0;
-        }
-
-        .incoming-person-details [style*="color: #ffb3ba"],
-        .incoming-person-details [style*="color: #ffdfba"],
-        .incoming-person-details [style*="color: #bae1ff"],
-        .incoming-person-details [style*="color: #eecbff"] {
-            background: none;
-            padding: 0;
-            border-radius: 0;
-            display: inline;
-            color: #000 !important;
-        }
-
-        /* Add animation for when section appears */
-        .incoming-people-section {
-            animation: fadeIn 0.3s ease-in-out;
+        /* ============================================
+           ANIMATIONS
+        ============================================ */
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
         }
 
         @keyframes fadeIn {
@@ -680,237 +835,46 @@
             }
         }
 
-        .occupant-item.starting-soon {
-            border-left: 4px solid #f59e0b;
-            background: #fffbeb;
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        
+        @keyframes slideOut {
+            from { transform: translateX(0); opacity: 1; }
+            to { transform: translateX(100%); opacity: 0; }
         }
 
-        .starting-soon .occupant-name {
-            color: #d97706;
-        }
-
-        /* Improve responsive design */
-        @media (max-width: 768px) {
-            .main-container {
-                padding: 1rem;
-                flex-direction: column;
-                gap: 1rem;
-            }
-
-            .svg-container {
-                padding: 1rem;
-                flex: none;
-            }
-
-            .incoming-people-section {
-                flex: none;
-                min-height: 300px;
-                max-height: 400px;
-            }
-            
-            .incoming-person-card {
-                padding: 0.75rem;
-            }
-            
-            .incoming-person-name {
-                font-size: 0.9rem;
-            }
-            
-            .incoming-person-details {
-                font-size: 0.8rem;
-            }
-        }
-
-        /* Enhanced Modal Styles for 2-Column Layout */
-        .modal-two-column .modal-content {
-            max-width: 1600px; /* Much wider to accommodate 2 columns comfortably */
-            width: 95%;
-            max-height: 85vh; /* Increase height as well */
-            min-height: 600px; /* Ensure minimum height */
-        }
-
-        .modal-layout {
-            display: grid;
-            grid-template-columns: 1.2fr 1fr; /* Left column slightly wider for occupants list */
-            gap: 3rem; /* More space between columns */
-            margin-top: 1.5rem;
-        }
-
-        .modal-left-column {
-            border-right: 1px solid #e5e7eb;
-            padding-right: 2rem; /* More padding */
-        }
-
-        .modal-right-column {
-            padding-left: 1rem; /* More padding */
-        }
-
-        /* Styled Occupants List - matches incoming section style */
-        .occupants-list-styled {
-            border-radius: 8px;
-            max-height: 400px; /* Increased height for better visibility */
-            overflow-y: auto;
-            margin-bottom: 1.5rem; /* More margin */
-        }
-
-        /* Individual occupant items with role-based border colors */
-        .occupant-item-styled {
-            background: white; /* White background instead of gray */
-            border: 2px solid #e5e7eb; /* Thicker border, color will be overridden */
-            border-radius: 8px;
-            padding: 1rem; /* Increased padding for better readability */
-            margin-bottom: 0.75rem; /* More space between items */
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            transition: all 0.2s ease;
-            min-height: 80px; /* Ensure consistent height */
-        }
-
-        .occupant-item-styled:last-child {
-            margin-bottom: 0;
-        }
-
-        .occupant-item-styled:hover {
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-            transform: translateY(-1px);
-        }
-
-        /* Special styling for starting soon items */
-        .occupant-item-styled.starting-soon {
-            background: #fffbeb; /* Light yellow background for soon-to-start */
-            border-width: 3px; /* Slightly thicker border for emphasis */
-        }
-
-        .occupant-item-styled .occupant-info {
-            flex: 1;
-        }
-
-        .occupant-item-styled .occupant-name {
-            font-weight: 600;
-            color: #1f2937;
-            margin-bottom: 0.5rem; /* More space between name and details */
-            font-size: 0.95rem; /* Slightly larger text */
-        }
-
-        .occupant-item-styled .occupant-details {
-            font-size: 0.8rem; /* Slightly larger detail text */
-            color: #6b7280;
-            line-height: 1.5; /* Better line spacing */
-        }
-
-        /* Adjust button positioning */
-        .occupant-item-styled .remove-btn {
-            padding: 0.5rem 0.75rem; /* Larger buttons */
-            background: #f3f4f6;
-            color: #374151;
-            border: 1px solid #d1d5db;
-            border-radius: 6px; /* Slightly larger border radius */
-            font-size: 0.8rem; /* Slightly larger text */
-            cursor: pointer;
-            transition: all 0.2s;
-            margin-left: 0.5rem; /* More space between buttons */
-            min-width: 60px; /* Ensure consistent button width */
-        }
-
-        .occupant-item-styled .remove-btn:hover {
-            background: #e5e7eb;
-            border-color: #9ca3af;
-        }
-
-        /* Modal buttons adjustment for right column */
-        .modal-right-column .modal-buttons {
-            display: flex;
-            flex-direction: column;
-            gap: 0.75rem;
-            margin-top: 1.5rem;
-        }
-
-        .modal-right-column .btn {
-            width: 100%;
-            padding: 0.75rem 1rem;
-            border: none;
-            border-radius: 8px;
-            font-size: 0.875rem;
-            font-weight: 500;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-
-        /* Enhanced form styling for right column */
-        .modal-right-column .form-group {
-            margin-bottom: 1rem;
-        }
-
-        .modal-right-column .form-group label {
-            display: block;
-            margin-bottom: 0.5rem;
-            font-weight: 500;
-            color: #374151;
-            font-size: 0.875rem;
-        }
-
-        .modal-right-column .form-group input,
-        .modal-right-column .form-group select {
-            width: 100%;
-            padding: 0.625rem;
-            border: 1px solid #d1d5db;
-            border-radius: 6px;
-            font-size: 0.875rem;
-            outline: none;
-            transition: border-color 0.2s;
-        }
-
-        .modal-right-column .form-group input:focus,
-        .modal-right-column .form-group select:focus {
-            border-color: #3b82f6;
-            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
-        }
-
-        /* Time limited fields in right column */
-        .modal-right-column .time-limited-fields {
-            display: none;
-            margin-top: 0.5rem;
-        }
-
-        .modal-right-column .time-limited-fields.show {
-            display: block;
-        }
-
-        .modal-right-column .date-row {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 0.5rem;
-            margin-bottom: 1rem;
-        }
-
-        /* Responsive adjustments */
-        @media (max-width: 1200px) {
+        /* ============================================
+           RESPONSIVE DESIGN
+        ============================================ */
+        @media (max-width: 1400px) {
             .modal-two-column .modal-content {
                 max-width: 95%;
+                padding: 2rem;
             }
             
             .modal-layout {
-                gap: 2rem;
+                gap: 3rem;
             }
         }
 
-        @media (max-width: 900px) {
+        @media (max-width: 1000px) {
             .modal-layout {
-                grid-template-columns: 1fr; /* Stack columns on smaller screens */
-                gap: 1.5rem;
+                grid-template-columns: 1fr; /* Stack columns */
+                gap: 2rem;
             }
             
             .modal-left-column {
                 border-right: none;
                 border-bottom: 1px solid #e5e7eb;
                 padding-right: 0;
-                padding-bottom: 1.5rem;
+                padding-bottom: 2rem;
             }
             
             .modal-right-column {
                 padding-left: 0;
-                padding-top: 1.5rem;
+                padding-top: 2rem;
             }
             
             .modal-right-column .modal-buttons {
@@ -920,50 +884,9 @@
             
             .modal-right-column .btn {
                 width: auto;
-                min-width: 120px;
+                min-width: 130px;
             }
         }
-
-        /* Left column specific adjustments */
-        .modal-left-column .form-group label {
-            font-size: 0.875rem;
-            font-weight: 600;
-            color: #374151;
-        }
-
-        .modal-left-column .room-name-input {
-            font-size: 0.875rem;
-            padding: 0.5rem;
-        }
-
-        #occupancyInfo {
-            font-size: 0.875rem;
-        }
-
-        #currentOccupancyText {
-            font-weight: 600;
-            color: #1f2937;
-        }
-
-        /* Scrollbar styling for occupants lists */
-        .occupants-list-styled::-webkit-scrollbar {
-            width: 6px;
-        }
-
-        .occupants-list-styled::-webkit-scrollbar-track {
-            background: #f1f1f1;
-            border-radius: 3px;
-        }
-
-        .occupants-list-styled::-webkit-scrollbar-thumb {
-            background: #c1c1c1;
-            border-radius: 3px;
-        }
-
-        .occupants-list-styled::-webkit-scrollbar-thumb:hover {
-            background: #a8a8a8;
-        }
-
 
         @media (max-width: 768px) {
             .header-content {
@@ -982,21 +905,31 @@
             .main-container {
                 padding: 1rem;
                 gap: 1rem;
+                flex-direction: column;
             }
 
             .svg-container {
                 padding: 1rem;
+                flex: none;
             }
-        }
 
-        @keyframes slideIn {
-            from { transform: translateX(100%); opacity: 0; }
-            to { transform: translateX(0); opacity: 1; }
-        }
-        
-        @keyframes slideOut {
-            from { transform: translateX(0); opacity: 1; }
-            to { transform: translateX(100%); opacity: 0; }
+            .modal-two-column .modal-content {
+                width: 95%;
+                padding: 1.5rem;
+                min-height: auto;
+            }
+            
+            .incoming-person-card {
+                padding: 0.75rem;
+            }
+            
+            .incoming-person-name {
+                font-size: 0.9rem;
+            }
+            
+            .incoming-person-details {
+                font-size: 0.8rem;
+            }
         }
     </style>
 </head>
@@ -4136,7 +4069,7 @@
                 let details = normalizeRole(person.role);
                 if (person.pi) details += ` • PI: ${person.pi}`;
                 if (person.startDate && person.endDate) {
-                    details += ` • ${person.startDate} to ${person.endDate}`;
+                    details += ` <br>${person.startDate} to ${person.endDate}`;
                 }
                 
                 // Get role color for border
@@ -4149,9 +4082,9 @@
                             <div class="occupant-name">${person.name}</div>
                             <div class="occupant-details">${details}</div>
                         </div>
-                        <div style="display: flex; gap: 0.5rem;">
-                            <button class="remove-btn" style="background: #f3f4f6; color: #374151; border-color: #d1d5db;" onclick="editPerson(${fullIndex})">Edit</button>
-                            <button class="remove-btn" onclick="removePersonFromRoom(${fullIndex})">Remove</button>
+                        <div style="display: flex; flex-direction: column; gap: 0.35rem;">
+                            <button class="remove-btn" style="background: #bbf7d0; color: #065f46; border-color: #86efac; padding: 0.35rem 0.5rem; font-size: 0.7rem;" onclick="editPerson(${fullIndex})">Edit</button>
+                            <button class="remove-btn" style="background: #fecaca; color: #7f1d1d; border-color: #fca5a5; padding: 0.35rem 0.5rem; font-size: 0.7rem;" onclick="removePersonFromRoom(${fullIndex})">Remove</button>
                         </div>
                     </div>
                 `;
@@ -4194,7 +4127,7 @@
                 let details = normalizeRole(person.role);
                 if (person.pi) details += ` • PI: ${person.pi}`;
                 if (person.startDate && person.endDate) {
-                    details += ` • ${person.startDate} to ${person.endDate}`;
+                    details += ` <br>${person.startDate} to ${person.endDate}`;
                 }
                 
                 const startDate = new Date(person.startDate);
@@ -4210,9 +4143,9 @@
                             <div class="occupant-name">${person.name}</div>
                             <div class="occupant-details">${details}</div>
                         </div>
-                        <div style="display: flex; gap: 0.5rem;">
-                            <button class="remove-btn" style="background: #f3f4f6; color: #374151; border-color: #d1d5db;" onclick="editPerson(${fullIndex})">Edit</button>
-                            <button class="remove-btn" onclick="removePersonFromRoom(${fullIndex})">Remove</button>
+                        <div style="display: flex; flex-direction: column; gap: 0.35rem;">
+                            <button class="remove-btn" style="background: #bbf7d0; color: #065f46; border-color: #86efac; padding: 0.35rem 0.5rem; font-size: 0.7rem;" onclick="editPerson(${fullIndex})">Edit</button>
+                            <button class="remove-btn" style="background: #fecaca; color: #7f1d1d; border-color: #fca5a5; padding: 0.35rem 0.5rem; font-size: 0.7rem;" onclick="removePersonFromRoom(${fullIndex})">Remove</button>
                         </div>
                     </div>
                 `;
