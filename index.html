@@ -4275,6 +4275,7 @@
             
             // Update the UI
             updateModalOccupantsList(room.occupants);
+            updateModalIncomingList(room.occupants, roomId);  // Fix: Update incoming people list
             processOccupancyData();
             markAsChanged();
             
@@ -4437,6 +4438,7 @@
             // Remove from local data
             occupancyData[roomId].occupants.splice(index, 1);
             updateModalOccupantsList(occupancyData[roomId].occupants);
+            updateModalIncomingList(occupancyData[roomId].occupants, roomId);  // Fix: Update incoming people list
             
             // Update display
             processOccupancyData();
