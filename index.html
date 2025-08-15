@@ -4534,8 +4534,8 @@
                             disabled: roomData.disabled || false,
                             max_occupancy: roomData.maxOccupancy || 1,
                             updated_at: new Date().toISOString()
-                        });
-                        
+                        }, { onConflict: 'room_id' });
+                                            
                     // Save occupants
                     if (roomData.occupants && roomData.occupants.length > 0) {
                         for (const person of roomData.occupants) {
@@ -4569,7 +4569,9 @@
                                 
                                 const { data, error } = await supabase
                                     .from('temporary_occupants')
-                                    .upsert(temporaryData);
+                                    .upsert(temporaryData, {
+                                        onConflict: 'room_id,name,role,start_date,end_date'
+                                    });
                                     
                                 if (error) {
                                     console.error(`Error saving temporary person ${person.name}:`, error);
@@ -4595,7 +4597,9 @@
                                 
                                 const { data, error } = await supabase
                                     .from('permanent_occupants')
-                                    .upsert(permanentData);
+                                    .upsert(permanentData, {
+                                        onConflict: 'room_id,name,role'
+                                    });
                                     
                                 if (error) {
                                     console.error(`Error saving permanent person ${person.name}:`, error);
