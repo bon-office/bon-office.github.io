@@ -721,6 +721,249 @@
             }
         }
 
+        /* Enhanced Modal Styles for 2-Column Layout */
+        .modal-two-column .modal-content {
+            max-width: 1600px; /* Much wider to accommodate 2 columns comfortably */
+            width: 95%;
+            max-height: 85vh; /* Increase height as well */
+            min-height: 600px; /* Ensure minimum height */
+        }
+
+        .modal-layout {
+            display: grid;
+            grid-template-columns: 1.2fr 1fr; /* Left column slightly wider for occupants list */
+            gap: 3rem; /* More space between columns */
+            margin-top: 1.5rem;
+        }
+
+        .modal-left-column {
+            border-right: 1px solid #e5e7eb;
+            padding-right: 2rem; /* More padding */
+        }
+
+        .modal-right-column {
+            padding-left: 1rem; /* More padding */
+        }
+
+        /* Styled Occupants List - matches incoming section style */
+        .occupants-list-styled {
+            border-radius: 8px;
+            max-height: 400px; /* Increased height for better visibility */
+            overflow-y: auto;
+            margin-bottom: 1.5rem; /* More margin */
+        }
+
+        /* Individual occupant items with role-based border colors */
+        .occupant-item-styled {
+            background: white; /* White background instead of gray */
+            border: 2px solid #e5e7eb; /* Thicker border, color will be overridden */
+            border-radius: 8px;
+            padding: 1rem; /* Increased padding for better readability */
+            margin-bottom: 0.75rem; /* More space between items */
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: all 0.2s ease;
+            min-height: 80px; /* Ensure consistent height */
+        }
+
+        .occupant-item-styled:last-child {
+            margin-bottom: 0;
+        }
+
+        .occupant-item-styled:hover {
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            transform: translateY(-1px);
+        }
+
+        /* Special styling for starting soon items */
+        .occupant-item-styled.starting-soon {
+            background: #fffbeb; /* Light yellow background for soon-to-start */
+            border-width: 3px; /* Slightly thicker border for emphasis */
+        }
+
+        .occupant-item-styled .occupant-info {
+            flex: 1;
+        }
+
+        .occupant-item-styled .occupant-name {
+            font-weight: 600;
+            color: #1f2937;
+            margin-bottom: 0.5rem; /* More space between name and details */
+            font-size: 0.95rem; /* Slightly larger text */
+        }
+
+        .occupant-item-styled .occupant-details {
+            font-size: 0.8rem; /* Slightly larger detail text */
+            color: #6b7280;
+            line-height: 1.5; /* Better line spacing */
+        }
+
+        /* Adjust button positioning */
+        .occupant-item-styled .remove-btn {
+            padding: 0.5rem 0.75rem; /* Larger buttons */
+            background: #f3f4f6;
+            color: #374151;
+            border: 1px solid #d1d5db;
+            border-radius: 6px; /* Slightly larger border radius */
+            font-size: 0.8rem; /* Slightly larger text */
+            cursor: pointer;
+            transition: all 0.2s;
+            margin-left: 0.5rem; /* More space between buttons */
+            min-width: 60px; /* Ensure consistent button width */
+        }
+
+        .occupant-item-styled .remove-btn:hover {
+            background: #e5e7eb;
+            border-color: #9ca3af;
+        }
+
+        /* Modal buttons adjustment for right column */
+        .modal-right-column .modal-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+            margin-top: 1.5rem;
+        }
+
+        .modal-right-column .btn {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            border: none;
+            border-radius: 8px;
+            font-size: 0.875rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        /* Enhanced form styling for right column */
+        .modal-right-column .form-group {
+            margin-bottom: 1rem;
+        }
+
+        .modal-right-column .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+            color: #374151;
+            font-size: 0.875rem;
+        }
+
+        .modal-right-column .form-group input,
+        .modal-right-column .form-group select {
+            width: 100%;
+            padding: 0.625rem;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            font-size: 0.875rem;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        .modal-right-column .form-group input:focus,
+        .modal-right-column .form-group select:focus {
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+
+        /* Time limited fields in right column */
+        .modal-right-column .time-limited-fields {
+            display: none;
+            margin-top: 0.5rem;
+        }
+
+        .modal-right-column .time-limited-fields.show {
+            display: block;
+        }
+
+        .modal-right-column .date-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 1200px) {
+            .modal-two-column .modal-content {
+                max-width: 95%;
+            }
+            
+            .modal-layout {
+                gap: 2rem;
+            }
+        }
+
+        @media (max-width: 900px) {
+            .modal-layout {
+                grid-template-columns: 1fr; /* Stack columns on smaller screens */
+                gap: 1.5rem;
+            }
+            
+            .modal-left-column {
+                border-right: none;
+                border-bottom: 1px solid #e5e7eb;
+                padding-right: 0;
+                padding-bottom: 1.5rem;
+            }
+            
+            .modal-right-column {
+                padding-left: 0;
+                padding-top: 1.5rem;
+            }
+            
+            .modal-right-column .modal-buttons {
+                flex-direction: row;
+                justify-content: flex-end;
+            }
+            
+            .modal-right-column .btn {
+                width: auto;
+                min-width: 120px;
+            }
+        }
+
+        /* Left column specific adjustments */
+        .modal-left-column .form-group label {
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: #374151;
+        }
+
+        .modal-left-column .room-name-input {
+            font-size: 0.875rem;
+            padding: 0.5rem;
+        }
+
+        #occupancyInfo {
+            font-size: 0.875rem;
+        }
+
+        #currentOccupancyText {
+            font-weight: 600;
+            color: #1f2937;
+        }
+
+        /* Scrollbar styling for occupants lists */
+        .occupants-list-styled::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .occupants-list-styled::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 3px;
+        }
+
+        .occupants-list-styled::-webkit-scrollbar-thumb {
+            background: #c1c1c1;
+            border-radius: 3px;
+        }
+
+        .occupants-list-styled::-webkit-scrollbar-thumb:hover {
+            background: #a8a8a8;
+        }
+
 
         @media (max-width: 768px) {
             .header-content {
@@ -3670,83 +3913,91 @@
         function createWorkspaceModal() {
             const modalHTML = `
                 <div id="workspaceModal" class="modal">
-                    <div class="modal-content">
+                    <div class="modal-content modal-two-column">
                         <h3>Edit Room Occupancy</h3>
                         
-                        <div class="form-group">
-                            <label>Room Name:</label>
-                            <input type="text" id="modalRoomName" class="room-name-input" ${!isAdminMode ? 'readonly' : ''}>
-                            <input type="hidden" id="modalRoomId">
-                        </div>
-                        
-                        <div class="form-group">
-
-                            <div id="occupancyInfo" style="padding: 0.5rem; background: #f3f4f6; border-radius: 6px; margin-bottom: 1rem;">
-                                <span id="currentOccupancyText">0/1 people</span>
-                                <div id="nextAvailableSlot" style="margin-top: 0.5rem; font-size: 0.8rem; color: #6b7280;"></div>
-                            </div>
-                        </div>
-                        
-                        <div id="adminOptions" class="admin-options">
-                            <div class="form-group">
-                                <label>Maximum Occupancy:</label>
-                                <input type="number" id="maxOccupancyInput" min="1" max="10" value="1">
-                            </div>
-                            <button id="toggleRoomBtn" class="admin-option-btn">Enable/Disable Room</button>
-                        </div>
-                        
-                        <div class="form-group">
-                            <label>Current:</label>
-                            <div id="modalOccupantsList" class="occupants-list"></div>
-                        </div>
-
-                        <div class="form-group">
-                            <label>Incoming:</label>
-                            <div id="modalIncomingList" class="occupants-list" style="border-color: #fbbf24; background: #fffbeb;">
-                                <p style="text-align: center; color: #6b7280; padding: 1rem;">No incoming people</p>
-                            </div>
-                        </div>
-                        
-                        <div class="form-group">
-                            <label>Add New Person:</label>
-                            <input type="text" id="newPersonName" placeholder="Full Name" required>
-                        </div>
-                        
-                        <div class="form-group">
-                            <label>Role:</label>
-                            <select id="newPersonRole" onchange="toggleTimeLimitedFields()">
-                                <option value="Faculty">Faculty</option>
-                                <option value="Researcher">Researcher</option>
-                                <option value="PhD student">PhD Student</option>
-                                <option value="Postdoc">Postdoc</option>
-                                <option value="Master student">Master student</option>
-                                <option value="Visitor">Visitor</option>
-                            </select>
-                        </div>
-                        
-                        <div id="timeLimitedFields" class="time-limited-fields">
-                            <div class="date-row">
+                        <div class="modal-layout">
+                            <!-- Left Column: Current and Incoming People -->
+                            <div class="modal-left-column">
                                 <div class="form-group">
-                                    <label>Start Date:</label>
-                                    <input type="date" id="newPersonStartDate">
+                                    <label>Room Name:</label>
+                                    <input type="text" id="modalRoomName" class="room-name-input" ${!isAdminMode ? 
+                                        'readonly' : ''}>
+                                    <input type="hidden" id="modalRoomId">
                                 </div>
+                                
                                 <div class="form-group">
-                                    <label>End Date:</label>
-                                    <input type="date" id="newPersonEndDate">
+                                    <div id="occupancyInfo" style="padding: 0.5rem; background: #f3f4f6; border-radius: 6px; margin-bottom: 1rem;">
+                                        <span id="currentOccupancyText">0/1 people</span>
+                                        <div id="nextAvailableSlot" style="margin-top: 0.5rem; font-size: 0.8rem; color: #6b7280;"></div>
+                                    </div>
+                                </div>
+                                
+                                <div id="adminOptions" class="admin-options">
+                                    <div class="form-group">
+                                        <label>Maximum Occupancy:</label>
+                                        <input type="number" id="maxOccupancyInput" min="1" max="10" value="1">
+                                    </div>
+                                    <button id="toggleRoomBtn" class="admin-option-btn">Enable/Disable Room</button>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label>Current:</label>
+                                    <div id="modalOccupantsList" class="occupants-list-styled"></div>
+                                </div>
+
+                                <div class="form-group">
+                                    <label>Incoming:</label>
+                                    <div id="modalIncomingList" class="occupants-list-styled">
+                                        <p style="text-align: center; color: #6b7280; padding: 1rem;">No incoming people</p>
+                                    </div>
                                 </div>
                             </div>
-                            <div class="form-group">
-                                <label>Principal Investigator:</label>
-                                <input type="text" id="newPersonPI" placeholder="PI Name">
+                            
+                            <!-- Right Column: Add Person Form and Buttons -->
+                            <div class="modal-right-column">
+                                <div class="form-group">
+                                    <label>Add New Person:</label>
+                                    <input type="text" id="newPersonName" placeholder="Full Name" required>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label>Role:</label>
+                                    <select id="newPersonRole" onchange="toggleTimeLimitedFields()">
+                                        <option value="Faculty">Faculty</option>
+                                        <option value="Researcher">Researcher</option>
+                                        <option value="PhD student">PhD Student</option>
+                                        <option value="Postdoc">Postdoc</option>
+                                        <option value="Master student">Master student</option>
+                                        <option value="Visitor">Visitor</option>
+                                    </select>
+                                </div>
+                                
+                                <div id="timeLimitedFields" class="time-limited-fields">
+                                    <div class="date-row">
+                                        <div class="form-group">
+                                            <label>Start Date:</label>
+                                            <input type="date" id="newPersonStartDate">
+                                        </div>
+                                        <div class="form-group">
+                                            <label>End Date:</label>
+                                            <input type="date" id="newPersonEndDate">
+                                        </div>
+                                    </div>
+                                    <div class="form-group">
+                                        <label>Principal Investigator:</label>
+                                        <input type="text" id="newPersonPI" placeholder="PI Name">
+                                    </div>
+                                </div>
+                                
+                                <div id="occupancyWarning" class="error-message" style="display: none;"></div>
+                                
+                                <div class="modal-buttons">
+                                    <button class="btn btn-secondary" onclick="closeWorkspaceModal()">Cancel</button>
+                                    <button class="btn btn-primary" id="addEditPersonBtn" onclick="addOrEditPerson()">Add Person</button>
+                                    <button class="btn btn-primary" id="saveChangesBtn" onclick="saveRoomChanges()" disabled>Save Changes</button>
+                                </div>
                             </div>
-                        </div>
-                        
-                        <div id="occupancyWarning" class="error-message" style="display: none;"></div>
-                        
-                        <div class="modal-buttons">
-                            <button class="btn btn-secondary" onclick="closeWorkspaceModal()">Cancel</button>
-                            <button class="btn btn-primary" id="addEditPersonBtn" onclick="addOrEditPerson()">Add Person</button>
-                            <button class="btn btn-primary" id="saveChangesBtn" onclick="saveRoomChanges()" disabled>Save Changes</button>
                         </div>
                     </div>
                 </div>
@@ -3858,7 +4109,7 @@
             const today = new Date().toISOString().split('T')[0];
             
             if (!occupants || occupants.length === 0) {
-                listContainer.innerHTML = '<p style="text-align: center; color: #6b7280;">No occupants</p>';
+                listContainer.innerHTML = '<p style="text-align: center; color: #6b7280; padding: 1rem;">No occupants</p>';
                 return;
             }
             
@@ -3870,7 +4121,7 @@
             });
             
             if (currentOccupants.length === 0) {
-                listContainer.innerHTML = '<p style="text-align: center; color: #6b7280;">No current occupants</p>';
+                listContainer.innerHTML = '<p style="text-align: center; color: #6b7280; padding: 1rem;">No current occupants</p>';
                 return;
             }
             
@@ -3888,8 +4139,12 @@
                     details += ` • ${person.startDate} to ${person.endDate}`;
                 }
                 
+                // Get role color for border
+                const normalizedRole = normalizeRole(person.role);
+                const borderColor = roleColors[normalizedRole] || '#e5e7eb';
+                
                 return `
-                    <div class="occupant-item">
+                    <div class="occupant-item-styled" style="border-color: ${borderColor};">
                         <div class="occupant-info">
                             <div class="occupant-name">${person.name}</div>
                             <div class="occupant-details">${details}</div>
@@ -3903,7 +4158,7 @@
             }).join('');
         }
 
-        // Function to update incoming people list in modal
+        // Updated function to display incoming people with role-based styling
         function updateModalIncomingList(occupants, roomId) {
             const listContainer = document.getElementById('modalIncomingList');
             const today = new Date().toISOString().split('T')[0];
@@ -3945,8 +4200,12 @@
                 const startDate = new Date(person.startDate);
                 const isStartingSoon = (startDate - new Date()) / (1000 * 60 * 60 * 24) <= 7;
                 
+                // Get role color for border
+                const normalizedRole = normalizeRole(person.role);
+                const borderColor = roleColors[normalizedRole] || '#e5e7eb';
+                
                 return `
-                    <div class="occupant-item ${isStartingSoon ? 'starting-soon' : ''}">
+                    <div class="occupant-item-styled ${isStartingSoon ? 'starting-soon' : ''}" style="border-color: ${borderColor};">
                         <div class="occupant-info">
                             <div class="occupant-name">${person.name}</div>
                             <div class="occupant-details">${details}</div>
@@ -3959,7 +4218,6 @@
                 `;
             }).join('');
         }
-
         function addOrEditPerson() {
             const name = document.getElementById('newPersonName')?.value?.trim();
             const role = document.getElementById('newPersonRole')?.value;
@@ -4015,6 +4273,28 @@
                 person.endDate = endDate;
                 person.pi = pi;
                 person.permanent = false; // Temporary occupant
+                
+                // Validation for temporary roles: Check for date overlap conflicts
+                const conflictResult = checkTemporaryPersonConflicts(roomId, startDate, endDate, editingPersonIndex);
+                if (conflictResult.hasConflict) {
+                    showNotification(
+                        `Cannot add person: Room will be at capacity during ${conflictResult.firstConflict} to ${conflictResult.lastConflict}. ` +
+                        `Consider different dates or wait until ${findNextAvailableSlot(roomId) || 'a spot opens up'}.`,
+                        'error'
+                    );
+                    return;
+                }
+            } else {
+                // Validation for permanent roles: Check if room will ever be full in the future
+                const futureFullPeriods = checkPermanentPersonConflicts(roomId, editingPersonIndex);
+                if (futureFullPeriods.hasConflict) {
+                    showNotification(
+                        `Cannot add permanent person: Room will be at capacity from ${futureFullPeriods.firstConflict} to ${futureFullPeriods.lastConflict} ` +
+                        `due to incoming temporary people. Consider adding as temporary person or wait until ${findNextAvailableSlot(roomId) || 'a spot opens up'}.`,
+                        'error'
+                    );
+                    return;
+                }
             }
             
             // Check if we're editing or adding
@@ -4049,8 +4329,8 @@
             clearPersonForm();
         }
 
-        // Function to check for future occupancy conflicts
-        function checkFutureOccupancyConflicts(roomId, startDate, endDate, excludePersonIndex = -1) {
+        // New function: Check conflicts for temporary people (date overlap validation)
+        function checkTemporaryPersonConflicts(roomId, startDate, endDate, excludePersonIndex = -1) {
             const room = occupancyData[roomId];
             if (!room || !room.maxOccupancy) return { hasConflict: false };
             
@@ -4063,10 +4343,9 @@
                 const dateString = date.toISOString().split('T')[0];
                 let dayOccupancy = 0;
                 
-                // Count occupants for this date
+                // Count occupants for this date (excluding the person we're editing if any)
                 room.occupants.forEach((person, index) => {
-                    // Skip the person we're trying to edit
-                    if (index === excludePersonIndex) return;
+                    if (index === excludePersonIndex) return; // Skip if we're editing this person
                     
                     if (person.permanent) {
                         dayOccupancy++;
@@ -4090,6 +4369,77 @@
                 conflictDates: conflicts,
                 firstConflict: conflicts[0],
                 lastConflict: conflicts[conflicts.length - 1]
+            };
+        }
+
+        // New function: Check conflicts for permanent people (future capacity validation)
+        function checkPermanentPersonConflicts(roomId, excludePersonIndex = -1) {
+            const room = occupancyData[roomId];
+            if (!room || !room.maxOccupancy) return { hasConflict: false };
+            
+            // Get all current permanent people (excluding the one we're editing)
+            const permanentCount = room.occupants.filter((person, index) => 
+                person.permanent && index !== excludePersonIndex
+            ).length;
+            
+            // Get all future temporary people
+            const today = new Date().toISOString().split('T')[0];
+            const futurePeople = room.occupants.filter((person, index) => 
+                !person.permanent && 
+                person.startDate && 
+                person.startDate >= today &&
+                index !== excludePersonIndex
+            );
+            
+            if (futurePeople.length === 0) {
+                // No future people, check if we can add one more permanent person
+                return { hasConflict: (permanentCount + 1) > room.maxOccupancy };
+            }
+            
+            // Check if adding a permanent person would exceed capacity during any future period
+            const conflicts = [];
+            const checkedDates = new Set();
+            
+            futurePeople.forEach(person => {
+                const start = new Date(person.startDate);
+                const end = new Date(person.endDate);
+                
+                for (let date = new Date(start); date <= end; date.setDate(date.getDate() + 1)) {
+                    const dateString = date.toISOString().split('T')[0];
+                    
+                    if (checkedDates.has(dateString)) continue;
+                    checkedDates.add(dateString);
+                    
+                    let dayOccupancy = permanentCount + 1; // +1 for the new permanent person we're adding
+                    
+                    // Add temporary people for this date
+                    room.occupants.forEach((otherPerson, index) => {
+                        if (index === excludePersonIndex) return;
+                        if (otherPerson.permanent) return; // Already counted
+                        
+                        if (otherPerson.startDate && otherPerson.endDate) {
+                            const personStart = new Date(otherPerson.startDate);
+                            const personEnd = new Date(otherPerson.endDate);
+                            if (date >= personStart && date <= personEnd) {
+                                dayOccupancy++;
+                            }
+                        }
+                    });
+                    
+                    if (dayOccupancy > room.maxOccupancy) {
+                        conflicts.push(dateString);
+                    }
+                }
+            });
+            
+            // Remove duplicates and sort
+            const uniqueConflicts = [...new Set(conflicts)].sort();
+            
+            return {
+                hasConflict: uniqueConflicts.length > 0,
+                conflictDates: uniqueConflicts,
+                firstConflict: uniqueConflicts[0],
+                lastConflict: uniqueConflicts[uniqueConflicts.length - 1]
             };
         }
 
