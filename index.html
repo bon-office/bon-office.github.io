@@ -771,10 +771,6 @@
             <div class="header-content">
                 <h1 class="title">BON office - AlbaNova 2nd floor</h1>
                 <div class="controls">
-                    <div class="date-group">
-                        <label class="date-label">Occupancy at future date</label>
-                        <input type="date" class="date-picker" id="datePicker" title="View occupancy on this date">
-                    </div>
                     <button class="admin-btn" id="adminBtn" onclick="toggleAdminMode()">Admin</button>
                 </div>
             </div>
@@ -3113,14 +3109,18 @@
             checkAuthentication();
             setupLoginForm();
             
-            // Your existing DOMContentLoaded code goes here
-            document.getElementById('datePicker').value = selectedDate;
             initializeSupabase();
             setupEventListeners();
-            // ... etc
+
         });
 
         function checkAuthentication() {
+
+            if (window.location.protocol === 'file:') {
+                authenticateUser();
+                return;
+            }
+
             const authData = localStorage.getItem(SESSION_KEY);
             
             if (authData) {
@@ -3254,7 +3254,7 @@
         // Global variables
         let isAdminMode = false;
         let occupancyData = {};
-        let selectedDate = new Date().toISOString().split('T')[0];
+        let selectedDate = new Date().toISOString().split('T')[0]; // Always today
         let supabase = null;
 
         // Color mapping for different roles
@@ -3342,11 +3342,6 @@
 
         // Set up event listeners
         function setupEventListeners() {
-            // Date picker
-            document.getElementById('datePicker').addEventListener('change', function(e) {
-                selectedDate = e.target.value;
-                loadOccupancyData();
-            });
             
             // SVG workspace interactions
             setupWorkspaceInteractions();
@@ -3418,17 +3413,20 @@
         // Load from new Supabase structure
         async function loadFromSupabase() {
             try {
+                // Always use today's date
+                const today = new Date().toISOString().split('T')[0];
+                
                 // Load all permanent occupants (always visible)
                 const { data: permanentData, error: permanentError } = await supabase
                     .from('permanent_occupants')
                     .select('*');
                     
-                // Load temporary occupants filtered by date
+                // Load temporary occupants filtered by today's date only
                 const { data: temporaryData, error: temporaryError } = await supabase
                     .from('temporary_occupants')
                     .select('*')
-                    .lte('start_date', selectedDate)
-                    .gte('end_date', selectedDate);
+                    .lte('start_date', today)
+                    .gte('end_date', today);
                     
                 // Load room settings
                 const { data: roomSettings, error: roomError } = await supabase
@@ -3458,16 +3456,14 @@
             processOccupancyData();
         }
 
-        // Updated processOccupancyData - no need for filtering anymore since database handles it
         function processOccupancyData() {
             updateWorkspaceColors(occupancyData);
             updateIncomingPeopleSection();
             
-            console.log('Processed occupancy data for date:', selectedDate);
+            const today = new Date().toISOString().split('T')[0];
+            console.log('Processed occupancy data for today:', today);
             console.log('Data:', occupancyData);
         }
-
-
 
         // Update workspace colors based on occupancy
         function updateWorkspaceColors(displayData = occupancyData) {
@@ -3527,17 +3523,19 @@
             if (room && room.disabled) {
                 content += '<p>Room disabled</p>';
             } else if (room) {
-                const currentOccupancy = calculateOccupancyForDate(roomId, selectedDate);
+                // Remove selectedDate reference, always use current occupancy
+                const currentOccupancy = calculateCurrentOccupancy(roomId);
                 const maxOccupancy = room.maxOccupancy || 1;
                 
                 content += `<p>Occupancy: ${currentOccupancy}/${maxOccupancy}</p>`;
                 
                 if (room.occupants && room.occupants.length > 0) {
-                    // Show occupants for the current date
+                    // Show only current occupants (permanent + temporary for today)
+                    const today = new Date().toISOString().split('T')[0];
                     const currentOccupants = room.occupants.filter(person => {
                         if (person.permanent) return true;
                         if (!person.startDate || !person.endDate) return false;
-                        const checkDate = new Date(selectedDate);
+                        const checkDate = new Date(today);
                         const startDate = new Date(person.startDate);
                         const endDate = new Date(person.endDate);
                         return checkDate >= startDate && checkDate <= endDate;
@@ -3734,8 +3732,8 @@
             // Update max occupancy in room object
             room.maxOccupancy = maxOccupancy;
             
-            // Calculate current occupancy for selected date
-            const currentOccupancy = calculateOccupancyForDate(roomId, selectedDate);
+            // Calculate current occupancy for today only
+            const currentOccupancy = calculateCurrentOccupancy(roomId);
             
             // Update display
             const occupancyText = document.getElementById('currentOccupancyText');
@@ -4103,27 +4101,11 @@
             processOccupancyData();
         }
 
-        // Calculate occupancy for a specific date
-        function calculateOccupancyForDate(roomId, targetDate) {
-            const room = occupancyData[roomId];
-            if (!room) return 0;
-            
-            let count = 0;
-            const checkDate = new Date(targetDate);
-            
-            room.occupants.forEach(person => {
-                if (person.permanent) {
-                    count++;
-                } else if (person.startDate && person.endDate) {
-                    const startDate = new Date(person.startDate);
-                    const endDate = new Date(person.endDate);
-                    if (checkDate >= startDate && checkDate <= endDate) {
-                        count++;
-                    }
-                }
-            });
-            
-            return count;
+
+        // Replace calculateOccupancyForDate usage with this function
+        function calculateCurrentOccupancy(roomId) {
+            const today = new Date().toISOString().split('T')[0];
+            return calculateOccupancyForDate(roomId, today);
         }
 
         // Calculate occupancy for a date range
