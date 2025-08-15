@@ -4496,7 +4496,7 @@
                 console.log('Successfully saved to localStorage');
                 
                 if (!savedToSupabase) {
-                    showNotification('Saved locally (offline mode)', 'warning');
+                    //showNotification('Saved locally (offline mode)', 'warning');
                 } else {
                     showNotification('Data saved successfully', 'success');
                 }
@@ -4804,7 +4804,7 @@
                 top: 20px;
                 right: 20px;
                 padding: 12px 20px;
-                background: ${type === 'error' ? '#ef4444' : type === 'warning' ? '#ffffba' : '#10b981'};
+                background: ${type === 'error' ? '#ef4444' : type === 'warning' ? '#ffd1ba' : '#10b981'};
                 color: white;
                 border-radius: 8px;
                 z-index: 10000;
