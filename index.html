@@ -680,6 +680,14 @@
             }
         }
 
+        .occupant-item.starting-soon {
+            border-left: 4px solid #f59e0b;
+            background: #fffbeb;
+        }
+
+        .starting-soon .occupant-name {
+            color: #d97706;
+        }
 
         /* Improve responsive design */
         @media (max-width: 768px) {
@@ -3254,8 +3262,13 @@
         // Global variables
         let isAdminMode = false;
         let occupancyData = {};
-        let selectedDate = new Date().toISOString().split('T')[0]; // Always today
+        let selectedDate = new Date().toISOString().split('T')[0]; 
+        // Always today
         let supabase = null;
+
+        // Add after other global variables
+        let hasUnsavedChanges = false;
+        let editingPersonIndex = -1; // -1 means not editing, >= 0 means editing person at that index
 
         // Color mapping for different roles
         const roleColors = {
@@ -3520,6 +3533,7 @@
             
             let content = `<h4>${room?.name || roomId}</h4>`;
             
+            // In showTooltip function, replace the occupancy display section with:
             if (room && room.disabled) {
                 content += '<p>Room disabled</p>';
             } else if (room) {
@@ -3527,7 +3541,7 @@
                 const currentOccupancy = calculateCurrentOccupancy(roomId);
                 const maxOccupancy = room.maxOccupancy || 1;
                 
-                content += `<p>Occupancy: ${currentOccupancy}/${maxOccupancy}</p>`;
+                content += `<p>Capacity: ${currentOccupancy}/${maxOccupancy}</p>`;
                 
                 if (room.occupants && room.occupants.length > 0) {
                     // Show only current occupants (permanent + temporary for today)
@@ -3541,15 +3555,15 @@
                         return checkDate >= startDate && checkDate <= endDate;
                     });
                     
-                    content += currentOccupants.map(person => {
-                        const normalizedRole = normalizeRole(person.role);
-                        let personInfo = `<p><strong>${person.name}</strong> (${normalizedRole})</p>`;
-                        if (person.pi) personInfo += `<p>PI: ${person.pi}</p>`;
-                        if (person.startDate && person.endDate) {
-                            personInfo += `<p>Period: ${person.startDate} to ${person.endDate}</p>`;
-                        }
-                        return personInfo;
-                    }).join('');
+                    if (currentOccupants.length > 0) {
+                        content += currentOccupants.map(person => {
+                            const normalizedRole = normalizeRole(person.role);
+                            let personInfo = `<p><strong>${person.name}</strong> (${normalizedRole})</p>`;
+                            return personInfo;
+                        }).join('');
+                    } else {
+                        content += '<p>Vacant (incoming people scheduled)</p>';
+                    }
                 } else {
                     content += '<p>Vacant</p>';
                 }
@@ -3617,11 +3631,14 @@
             
             // Populate occupants list
             updateModalOccupantsList(room.occupants || []);
+            updateModalIncomingList(room.occupants || [], roomId); 
             
             // Update occupancy display
             updateOccupancyDisplay();
             
             modal.style.display = 'block';
+
+            markAsSaved(); // Reset the change tracking when opening modal
         }
 
         function createWorkspaceModal() {
@@ -3637,7 +3654,7 @@
                         </div>
                         
                         <div class="form-group">
-                            <label>Current Occupancy:</label>
+
                             <div id="occupancyInfo" style="padding: 0.5rem; background: #f3f4f6; border-radius: 6px; margin-bottom: 1rem;">
                                 <span id="currentOccupancyText">0/1 people</span>
                                 <div id="nextAvailableSlot" style="margin-top: 0.5rem; font-size: 0.8rem; color: #6b7280;"></div>
@@ -3653,8 +3670,15 @@
                         </div>
                         
                         <div class="form-group">
-                            <label>Current Occupants:</label>
+                            <label>Current:</label>
                             <div id="modalOccupantsList" class="occupants-list"></div>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Incoming:</label>
+                            <div id="modalIncomingList" class="occupants-list" style="border-color: #fbbf24; background: #fffbeb;">
+                                <p style="text-align: center; color: #6b7280; padding: 1rem;">No incoming people</p>
+                            </div>
                         </div>
                         
                         <div class="form-group">
@@ -3695,8 +3719,8 @@
                         
                         <div class="modal-buttons">
                             <button class="btn btn-secondary" onclick="closeWorkspaceModal()">Cancel</button>
-                            <button class="btn btn-primary" onclick="addPersonToRoom()">Add Person</button>
-                            <button class="btn btn-primary" onclick="saveRoomChanges()">Save Changes</button>
+                            <button class="btn btn-primary" id="addEditPersonBtn" onclick="addOrEditPerson()">Add Person</button>
+                            <button class="btn btn-primary" id="saveChangesBtn" onclick="saveRoomChanges()" disabled>Save Changes</button>
                         </div>
                     </div>
                 </div>
@@ -3803,17 +3827,36 @@
             }
         }
 
-        // Update modal occupants list
         function updateModalOccupantsList(occupants) {
             const listContainer = document.getElementById('modalOccupantsList');
+            const today = new Date().toISOString().split('T')[0];
             
             if (!occupants || occupants.length === 0) {
                 listContainer.innerHTML = '<p style="text-align: center; color: #6b7280;">No occupants</p>';
                 return;
             }
             
-            listContainer.innerHTML = occupants.map((person, index) => {
-                let details = normalizeRole(person.role)
+            // Filter for current occupants only
+            const currentOccupants = occupants.filter(person => {
+                if (person.permanent) return true; // Permanent people are always current
+                if (!person.startDate || !person.endDate) return false;
+                return person.startDate <= today && person.endDate >= today;
+            });
+            
+            if (currentOccupants.length === 0) {
+                listContainer.innerHTML = '<p style="text-align: center; color: #6b7280;">No current occupants</p>';
+                return;
+            }
+            
+            listContainer.innerHTML = currentOccupants.map((person, displayIndex) => {
+                // Find original index in the full occupants array
+                const fullIndex = occupants.findIndex(p => 
+                    p.name === person.name && 
+                    p.role === person.role && 
+                    (p.permanent || (p.startDate === person.startDate && p.endDate === person.endDate))
+                );
+                
+                let details = normalizeRole(person.role);
                 if (person.pi) details += ` • PI: ${person.pi}`;
                 if (person.startDate && person.endDate) {
                     details += ` • ${person.startDate} to ${person.endDate}`;
@@ -3825,14 +3868,73 @@
                             <div class="occupant-name">${person.name}</div>
                             <div class="occupant-details">${details}</div>
                         </div>
-                        <button class="remove-btn" onclick="removePersonFromRoom(${index})">Remove</button>
+                        <div style="display: flex; gap: 0.5rem;">
+                            <button class="remove-btn" style="background: #f3f4f6; color: #374151; border-color: #d1d5db;" onclick="editPerson(${fullIndex})">Edit</button>
+                            <button class="remove-btn" onclick="removePersonFromRoom(${fullIndex})">Remove</button>
+                        </div>
                     </div>
                 `;
             }).join('');
         }
 
-        // Updated addPersonToRoom function
-        function addPersonToRoom() {
+        // Function to update incoming people list in modal
+        function updateModalIncomingList(occupants, roomId) {
+            const listContainer = document.getElementById('modalIncomingList');
+            const today = new Date().toISOString().split('T')[0];
+            
+            if (!occupants || occupants.length === 0) {
+                listContainer.innerHTML = '<p style="text-align: center; color: #6b7280; padding: 1rem;">No incoming people</p>';
+                return;
+            }
+            
+            // Filter for future occupants only
+            const incomingPeople = occupants.filter(person => {
+                if (person.permanent) return false; // Permanent people are already current
+                if (!person.startDate) return false;
+                return person.startDate > today;
+            });
+            
+            if (incomingPeople.length === 0) {
+                listContainer.innerHTML = '<p style="text-align: center; color: #6b7280; padding: 1rem;">No incoming people</p>';
+                return;
+            }
+            
+            // Sort by start date
+            incomingPeople.sort((a, b) => new Date(a.startDate) - new Date(b.startDate));
+            
+            listContainer.innerHTML = incomingPeople.map((person, originalIndex) => {
+                // Find original index in the full occupants array
+                const fullIndex = occupants.findIndex(p => 
+                    p.name === person.name && 
+                    p.role === person.role && 
+                    p.startDate === person.startDate
+                );
+                
+                let details = normalizeRole(person.role);
+                if (person.pi) details += ` • PI: ${person.pi}`;
+                if (person.startDate && person.endDate) {
+                    details += ` • ${person.startDate} to ${person.endDate}`;
+                }
+                
+                const startDate = new Date(person.startDate);
+                const isStartingSoon = (startDate - new Date()) / (1000 * 60 * 60 * 24) <= 7;
+                
+                return `
+                    <div class="occupant-item ${isStartingSoon ? 'starting-soon' : ''}">
+                        <div class="occupant-info">
+                            <div class="occupant-name">${person.name}</div>
+                            <div class="occupant-details">${details}</div>
+                        </div>
+                        <div style="display: flex; gap: 0.5rem;">
+                            <button class="remove-btn" style="background: #f3f4f6; color: #374151; border-color: #d1d5db;" onclick="editPerson(${fullIndex})">Edit</button>
+                            <button class="remove-btn" onclick="removePersonFromRoom(${fullIndex})">Remove</button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function addOrEditPerson() {
             const name = document.getElementById('newPersonName').value.trim();
             const role = document.getElementById('newPersonRole').value;
             const roomId = document.getElementById('modalRoomId').value;
@@ -3861,7 +3963,6 @@
                 permanent: true
             };
             
-            // Add time-limited fields for visitors and master students
             if (role === 'Visitor' || role === 'Master student') {
                 const startDate = document.getElementById('newPersonStartDate').value;
                 const endDate = document.getElementById('newPersonEndDate').value;
@@ -3882,19 +3983,23 @@
                 person.pi = pi;
                 person.permanent = false;
                 
-                // Check occupancy for the entire date range
-                const maxOccupancyInRange = calculateMaxOccupancyInRange(roomId, startDate, endDate) + 1; // +1 for the new person
+                // Check for future conflicts
+                const conflictCheck = checkFutureOccupancyConflicts(roomId, startDate, endDate, editingPersonIndex);
                 
-                if (maxOccupancyInRange > room.maxOccupancy) {
+                if (conflictCheck.hasConflict) {
                     const warningDiv = document.getElementById('occupancyWarning');
-                    warningDiv.innerHTML = `Cannot add person: This would exceed the maximum occupancy of ${room.maxOccupancy} during the requested period.`;
+                    if (conflictCheck.conflictDates.length === 1) {
+                        warningDiv.innerHTML = `Cannot add person: Room will be at maximum occupancy on ${conflictCheck.firstConflict}.`;
+                    } else {
+                        warningDiv.innerHTML = `Cannot add person: Room will be at maximum occupancy from ${conflictCheck.firstConflict} to ${conflictCheck.lastConflict}.`;
+                    }
                     warningDiv.style.display = 'block';
                     return;
                 }
             } else {
                 // For permanent residents, check current occupancy + 1
                 const currentOccupancy = calculateOccupancyForDate(roomId, selectedDate);
-                if (currentOccupancy >= room.maxOccupancy) {
+                if (currentOccupancy >= room.maxOccupancy && editingPersonIndex === -1) {
                     const warningDiv = document.getElementById('occupancyWarning');
                     warningDiv.innerHTML = `Cannot add person: Room is at maximum occupancy (${room.maxOccupancy}).`;
                     warningDiv.style.display = 'block';
@@ -3902,38 +4007,61 @@
                 }
             }
             
-            // Hide warning if we get here
-            document.getElementById('occupancyWarning').style.display = 'none';
-            
-            // Check if person already exists
-            const exists = room.occupants.some(existing => 
-                existing.name === person.name && existing.role === person.role
-            );
-            
-            if (exists) {
-                showNotification('Person already exists in this room', 'error');
-                return;
-            }
-            
-            room.occupants.push(person);
-            
-            // Save to database immediately
-            saveOccupancyData();
-            
-            // Update modal display
+            // Mark as changed and update display
+            markAsChanged();
             updateModalOccupantsList(room.occupants);
             updateOccupancyDisplay();
-            
-            // Update the main display
             processOccupancyData();
             
             // Clear form
-            document.getElementById('newPersonName').value = '';
-            document.getElementById('newPersonStartDate').value = '';
-            document.getElementById('newPersonEndDate').value = '';
-            document.getElementById('newPersonPI').value = '';
+            clearPersonForm();
             
-            showNotification('Person added successfully');
+            // Hide warning if visible
+            document.getElementById('occupancyWarning').style.display = 'none';
+        }
+
+        // Function to check for future occupancy conflicts
+        function checkFutureOccupancyConflicts(roomId, startDate, endDate, excludePersonIndex = -1) {
+            const room = occupancyData[roomId];
+            if (!room || !room.maxOccupancy) return { hasConflict: false };
+            
+            const start = new Date(startDate);
+            const end = new Date(endDate);
+            const conflicts = [];
+            
+            // Check each day in the range
+            for (let date = new Date(start); date <= end; date.setDate(date.getDate() + 1)) {
+                const dateString = date.toISOString().split('T')[0];
+                let dayOccupancy = 0;
+                
+                // Count occupants for this date
+                room.occupants.forEach((person, index) => {
+                    // Skip the person we're trying to edit
+                    if (index === excludePersonIndex) return;
+                    
+                    if (person.permanent) {
+                        dayOccupancy++;
+                    } else if (person.startDate && person.endDate) {
+                        const personStart = new Date(person.startDate);
+                        const personEnd = new Date(person.endDate);
+                        if (date >= personStart && date <= personEnd) {
+                            dayOccupancy++;
+                        }
+                    }
+                });
+                
+                // Check if adding one more person would exceed capacity
+                if (dayOccupancy >= room.maxOccupancy) {
+                    conflicts.push(dateString);
+                }
+            }
+            
+            return {
+                hasConflict: conflicts.length > 0,
+                conflictDates: conflicts,
+                firstConflict: conflicts[0],
+                lastConflict: conflicts[conflicts.length - 1]
+            };
         }
 
         // Remove person from room and database
@@ -3945,7 +4073,8 @@
             }
             
             const person = occupancyData[roomId].occupants[index];
-            
+            markAsChanged();
+
             // Remove from database if using Supabase
             if (supabase && person) {
                 try {
@@ -3995,6 +4124,7 @@
             
             saveOccupancyData();
             processOccupancyData();
+            markAsSaved(); // Add this line
             closeWorkspaceModal();
             showNotification('Changes saved successfully');
         }
@@ -4106,6 +4236,36 @@
         function calculateCurrentOccupancy(roomId) {
             const today = new Date().toISOString().split('T')[0];
             return calculateOccupancyForDate(roomId, today);
+        }
+
+        // Calculate occupancy for a specific date
+        function calculateOccupancyForDate(roomId, dateString) {
+            const room = occupancyData[roomId];
+            if (!room || !room.occupants) return 0;
+            
+            const checkDate = new Date(dateString);
+            checkDate.setHours(0, 0, 0, 0);
+            
+            let count = 0;
+            
+            room.occupants.forEach(person => {
+                if (person.permanent) {
+                    // Permanent occupants are always counted
+                    count++;
+                } else if (person.startDate && person.endDate) {
+                    // Temporary occupants: check if the date falls within their range
+                    const startDate = new Date(person.startDate);
+                    const endDate = new Date(person.endDate);
+                    startDate.setHours(0, 0, 0, 0);
+                    endDate.setHours(0, 0, 0, 0);
+                    
+                    if (checkDate >= startDate && checkDate <= endDate) {
+                        count++;
+                    }
+                }
+            });
+            
+            return count;
         }
 
         // Calculate occupancy for a date range
@@ -4362,6 +4522,84 @@
             }).join('');
             
             section.style.display = 'block';
+        }
+
+        // Function to mark that changes have been made
+        function markAsChanged() {
+            hasUnsavedChanges = true;
+            const saveBtn = document.getElementById('saveChangesBtn');
+            if (saveBtn) {
+                saveBtn.disabled = false;
+                saveBtn.style.background = '#3b82f6';
+                saveBtn.style.cursor = 'pointer';
+            }
+        }
+
+        // Function to mark changes as saved
+        function markAsSaved() {
+            hasUnsavedChanges = false;
+            editingPersonIndex = -1;
+            const saveBtn = document.getElementById('saveChangesBtn');
+            if (saveBtn) {
+                saveBtn.disabled = true;
+                saveBtn.style.background = '#9ca3af';
+                saveBtn.style.cursor = 'not-allowed';
+            }
+            // Reset the add/edit button
+            const addEditBtn = document.getElementById('addEditPersonBtn');
+            if (addEditBtn) {
+                addEditBtn.textContent = 'Add Person';
+                addEditBtn.onclick = addOrEditPerson;
+            }
+            // Clear the form
+            clearPersonForm();
+        }
+
+        // Function to clear the person form
+        function clearPersonForm() {
+            document.getElementById('newPersonName').value = '';
+            document.getElementById('newPersonRole').selectedIndex = 0;
+            document.getElementById('newPersonStartDate').value = '';
+            document.getElementById('newPersonEndDate').value = '';
+            document.getElementById('newPersonPI').value = '';
+            document.getElementById('timeLimitedFields').classList.remove('show');
+        }
+
+        // Function to edit an existing person
+        function editPerson(index) {
+            const roomId = document.getElementById('modalRoomId').value;
+            const room = occupancyData[roomId];
+            
+            if (!room || !room.occupants || !room.occupants[index]) {
+                return;
+            }
+            
+            const person = room.occupants[index];
+            editingPersonIndex = index;
+            
+            // Populate the form with existing data
+            document.getElementById('newPersonName').value = person.name;
+            document.getElementById('newPersonRole').value = person.role;
+            
+            if (person.startDate) {
+                document.getElementById('newPersonStartDate').value = person.startDate;
+            }
+            if (person.endDate) {
+                document.getElementById('newPersonEndDate').value = person.endDate;
+            }
+            if (person.pi) {
+                document.getElementById('newPersonPI').value = person.pi;
+            }
+            
+            // Show time-limited fields if needed
+            toggleTimeLimitedFields();
+            
+            // Update the button text and function
+            const addEditBtn = document.getElementById('addEditPersonBtn');
+            addEditBtn.textContent = 'Update Person';
+            
+            // Scroll to the form
+            document.getElementById('newPersonName').focus();
         }
     </script>
 
