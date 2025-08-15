@@ -3744,8 +3744,6 @@
                 const currentOccupancy = calculateCurrentOccupancy(roomId);
                 const maxOccupancy = room.maxOccupancy || 1;
                 
-                content += `<p>Capacity: ${currentOccupancy}/${maxOccupancy}</p>`;
-                
                 if (room.occupants && room.occupants.length > 0) {
                     // Show only current occupants (permanent + temporary for today)
                     const today = new Date().toISOString().split('T')[0];
