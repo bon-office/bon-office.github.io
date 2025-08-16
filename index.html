@@ -4635,9 +4635,9 @@
                         throw new Error(`Failed to delete old record: ${error.message}`);
                     }
                     
-                    // Step 2: Insert the new record
+                    // Step 2: Insert the new record (using INSERT since we deleted the old one)
                     try {
-                        await savePersonToSupabase(roomId, room, updatedPerson);
+                        await savePersonToSupabase(roomId, room, updatedPerson, true); // true = isEditOperation
                         console.log('Successfully saved updated record');
                     } catch (error) {
                         console.error('Failed to save updated record:', error);
@@ -4651,7 +4651,7 @@
                     console.log('Edit transaction completed successfully');
                     
                 } else {
-                    // Normal save operation for all rooms
+                    // Normal save operation for all rooms (use UPSERT to handle existing records)
                     for (const [roomId, roomData] of Object.entries(occupancyData)) {
                         if (!roomData || !roomId) continue;
                         
@@ -4668,10 +4668,10 @@
                                 updated_at: new Date().toISOString()
                             }, { onConflict: 'room_id' });
                                                                 
-                        // Save occupants
+                        // Save occupants (using UPSERT for regular saves)
                         if (roomData.occupants && roomData.occupants.length > 0) {
                             for (const person of roomData.occupants) {
-                                await savePersonToSupabase(roomId, roomData, person);
+                                await savePersonToSupabase(roomId, roomData, person, false); // false = regular save
                             }
                         }
                     }
@@ -4688,8 +4688,9 @@
             }
         }
 
-        async function savePersonToSupabase(roomId, roomData, person) {
-            console.log(`Processing person for save:`, person);
+
+        async function savePersonToSupabase(roomId, roomData, person, isEditOperation = false) {
+            console.log(`Processing person for save:`, person, `isEditOperation: ${isEditOperation}`);
             
             // Determine if this person should be saved as temporary or permanent
             const isTemporary = !person.permanent && 
@@ -4715,11 +4716,23 @@
                 
                 console.log(`Temporary data to save:`, temporaryData);
                 
-                // Use insert instead of upsert for new records to avoid conflicts
-                const { data, error } = await supabase
-                    .from('temporary_occupants')
-                    .insert(temporaryData);
-                    
+                let result;
+                if (isEditOperation) {
+                    // For edit operations, use INSERT (since we already deleted the old record)
+                    result = await supabase
+                        .from('temporary_occupants')
+                        .insert(temporaryData);
+                } else {
+                    // For regular saves, use UPSERT to handle existing records
+                    result = await supabase
+                        .from('temporary_occupants')
+                        .upsert(temporaryData, { 
+                            onConflict: 'room_id,name,role,start_date,end_date',
+                            ignoreDuplicates: false 
+                        });
+                }
+                
+                const { data, error } = result;
                 if (error) {
                     console.error(`Error saving temporary person ${person.name}:`, error);
                     throw error;
@@ -4742,11 +4755,23 @@
                 
                 console.log(`Permanent data to save:`, permanentData);
                 
-                // Use insert instead of upsert for new records to avoid conflicts
-                const { data, error } = await supabase
-                    .from('permanent_occupants')
-                    .insert(permanentData);
-                    
+                let result;
+                if (isEditOperation) {
+                    // For edit operations, use INSERT (since we already deleted the old record)
+                    result = await supabase
+                        .from('permanent_occupants')
+                        .insert(permanentData);
+                } else {
+                    // For regular saves, use UPSERT to handle existing records
+                    result = await supabase
+                        .from('permanent_occupants')
+                        .upsert(permanentData, { 
+                            onConflict: 'room_id,name,role',
+                            ignoreDuplicates: false 
+                        });
+                }
+                
+                const { data, error } = result;
                 if (error) {
                     console.error(`Error saving permanent person ${person.name}:`, error);
                     throw error;
