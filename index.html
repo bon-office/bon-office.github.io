@@ -3446,6 +3446,7 @@
         // Add after other global variables
         let hasUnsavedChanges = false;
         let editingPersonIndex = -1; // -1 means not editing, >= 0 means editing person at that index
+        let originalPersonData = null; // Track original person data during editing
 
         // Color mapping for different roles
         const roleColors = {
@@ -3825,6 +3826,9 @@
             if (isAdminMode) {
                 adminOptions.classList.add('show');
                 updateAdminOptions(room);
+                
+                // ADD EVENT LISTENERS FOR ADMIN FIELDS
+                setupAdminFieldListeners(roomId);
             } else {
                 adminOptions.classList.remove('show');
             }
@@ -3839,6 +3843,59 @@
             modal.style.display = 'block';
 
             markAsSaved(); // Reset the change tracking when opening modal
+        }
+
+        // NEW FUNCTION - Setup event listeners for admin fields
+        function setupAdminFieldListeners(roomId) {
+            const roomNameInput = document.getElementById('modalRoomName');
+            const maxOccupancyInput = document.getElementById('maxOccupancyInput');
+            const toggleRoomBtn = document.getElementById('toggleRoomBtn');
+            
+            // Remove existing listeners to avoid duplicates
+            const newRoomNameInput = roomNameInput.cloneNode(true);
+            const newMaxOccupancyInput = maxOccupancyInput.cloneNode(true);
+            
+            roomNameInput.parentNode.replaceChild(newRoomNameInput, roomNameInput);
+            maxOccupancyInput.parentNode.replaceChild(newMaxOccupancyInput, maxOccupancyInput);
+            
+            // Add listeners for room name changes
+            newRoomNameInput.addEventListener('input', function() {
+                if (isAdminMode && occupancyData[roomId]) {
+                    occupancyData[roomId].name = this.value;
+                    markAsChanged();
+                }
+            });
+            
+            // Add listeners for max occupancy changes
+            newMaxOccupancyInput.addEventListener('input', function() {
+                if (isAdminMode && occupancyData[roomId]) {
+                    const newMaxOccupancy = parseInt(this.value) || 1;
+                    occupancyData[roomId].maxOccupancy = newMaxOccupancy;
+                    updateOccupancyDisplay(roomId); // Update the display immediately
+                    markAsChanged();
+                }
+            });
+            
+            // Update toggle room button to mark changes
+            const newToggleBtn = toggleRoomBtn.cloneNode(true);
+            toggleRoomBtn.parentNode.replaceChild(newToggleBtn, toggleRoomBtn);
+            
+            newToggleBtn.addEventListener('click', function() {
+                if (!occupancyData[roomId]) {
+                    occupancyData[roomId] = {
+                        name: document.getElementById('modalRoomName').value || roomId,
+                        occupants: [],
+                        disabled: false,
+                        maxOccupancy: parseInt(document.getElementById('maxOccupancyInput').value) || 1
+                    };
+                }
+                
+                const room = occupancyData[roomId];
+                room.disabled = !room.disabled;
+                updateAdminOptions(room);
+                markAsChanged();
+                showNotification(room.disabled ? 'Room disabled' : 'Room enabled', 'success');
+            });
         }
 
         function createWorkspaceModal() {
@@ -4428,15 +4485,29 @@
         function saveRoomChanges() {
             const roomId = document.getElementById('modalRoomId').value;
             const roomName = document.getElementById('modalRoomName').value;
+            const maxOccupancy = parseInt(document.getElementById('maxOccupancyInput').value) || 1;
             
-            // Update room name if in admin mode
-            if (isAdminMode && occupancyData[roomId]) {
-                occupancyData[roomId].name = roomName;
+            // Ensure room exists in occupancyData
+            if (!occupancyData[roomId]) {
+                occupancyData[roomId] = {
+                    name: roomName,
+                    occupants: [],
+                    disabled: false,
+                    maxOccupancy: maxOccupancy
+                };
             }
             
+            // Update room data if in admin mode
+            if (isAdminMode) {
+                occupancyData[roomId].name = roomName;
+                occupancyData[roomId].maxOccupancy = maxOccupancy;
+                // Keep existing disabled state and occupants
+            }
+            
+            // Save to both Supabase and localStorage
             saveOccupancyData();
             processOccupancyData();
-            markAsSaved(); // Add this line
+            markAsSaved();
             closeWorkspaceModal();
             showNotification('Changes saved successfully');
         }
@@ -4492,6 +4563,33 @@
             console.log('Data saved to localStorage with key:', dataKey);
         }
 
+
+        // Helper function to delete a person from Supabase
+        async function deletePersonFromSupabase(roomId, person) {
+            if (person.permanent || (person.role !== 'Visitor' && person.role !== 'Master student')) {
+                // Remove from permanent_occupants
+                const { error } = await supabase
+                    .from('permanent_occupants')
+                    .delete()
+                    .eq('room_id', roomId)
+                    .eq('name', person.name)
+                    .eq('role', person.role);
+                    
+                if (error) throw error;
+            } else {
+                // Remove from temporary_occupants
+                const { error } = await supabase
+                    .from('temporary_occupants')
+                    .delete()
+                    .eq('room_id', roomId)
+                    .eq('name', person.name)
+                    .eq('role', person.role)
+                    .eq('start_date', person.startDate)
+                    .eq('end_date', person.endDate);
+                    
+                if (error) throw error;
+            }
+        }
 
         // Save to new Supabase structure with improved debugging
         async function saveToSupabase() {
@@ -4916,6 +5014,7 @@
                 saveBtn.disabled = false;
                 saveBtn.style.background = '#3b82f6';
                 saveBtn.style.cursor = 'pointer';
+                saveBtn.style.opacity = '1';
             }
         }
 
@@ -4923,20 +5022,21 @@
         function markAsSaved() {
             hasUnsavedChanges = false;
             editingPersonIndex = -1;
+            originalPersonData = null;
+            
             const saveBtn = document.getElementById('saveChangesBtn');
             if (saveBtn) {
                 saveBtn.disabled = true;
                 saveBtn.style.background = '#9ca3af';
                 saveBtn.style.cursor = 'not-allowed';
+                saveBtn.style.opacity = '0.6';
             }
+            
             // Reset the add/edit button
             const addEditBtn = document.getElementById('addEditPersonBtn');
             if (addEditBtn) {
                 addEditBtn.textContent = 'Add Person';
-                addEditBtn.onclick = addOrEditPerson;
             }
-            // Clear the form
-            clearPersonForm();
         }
 
         // Function to clear the person form
@@ -4957,6 +5057,10 @@
             if (addEditBtn) {
                 addEditBtn.textContent = 'Add Person';
             }
+            
+            // Reset editing state
+            editingPersonIndex = -1;
+            originalPersonData = null;
         }
 
         // Function to edit an existing person
