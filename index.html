@@ -4655,9 +4655,13 @@
                                 
                                 console.log(`Temporary data to save:`, temporaryData);
                                 
+                                // Use upsert instead of insert to handle potential duplicates
                                 const { data, error } = await supabase
                                     .from('temporary_occupants')
-                                    .insert(temporaryData); // Changed from upsert to insert for clarity
+                                    .upsert(temporaryData, { 
+                                        onConflict: 'room_id,name,role,start_date,end_date',
+                                        ignoreDuplicates: false 
+                                    });
                                     
                                 if (error) {
                                     console.error(`Error saving temporary person ${person.name}:`, error);
@@ -4681,9 +4685,13 @@
                                 
                                 console.log(`Permanent data to save:`, permanentData);
                                 
+                                // Use upsert instead of insert to handle the unique constraint
                                 const { data, error } = await supabase
                                     .from('permanent_occupants')
-                                    .insert(permanentData); // Changed from upsert to insert for clarity
+                                    .upsert(permanentData, { 
+                                        onConflict: 'room_id,name,role',
+                                        ignoreDuplicates: false 
+                                    });
                                     
                                 if (error) {
                                     console.error(`Error saving permanent person ${person.name}:`, error);
