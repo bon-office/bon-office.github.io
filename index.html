@@ -4271,13 +4271,15 @@
             
             // Check if we're editing or adding
             if (editingPersonIndex >= 0) {
-                // Editing existing person
+                // Editing existing person - update in place
                 room.occupants[editingPersonIndex] = person;
                 showNotification('Person updated successfully', 'success');
+                console.log('Updated person in occupants array at index:', editingPersonIndex);
             } else {
                 // Adding new person
                 room.occupants.push(person);
                 showNotification('Person added successfully', 'success');
+                console.log('Added new person to occupants array');
             }
             
             // Update the room data
@@ -4285,8 +4287,8 @@
             
             // CRITICAL: Save the data immediately with proper edit handling
             try {
-                console.log('Saving person:', person, 'to room:', roomId);
-                saveOccupancyData(); // This will now handle edits properly
+                console.log('Calling saveOccupancyData() which will handle the edit properly');
+                saveOccupancyData(); // This will now handle edits properly via saveToSupabase()
             } catch (error) {
                 console.error('Failed to save person:', error);
                 showNotification('Error saving data', 'error');
@@ -4302,7 +4304,6 @@
             // Clear the form for next entry
             clearPersonForm();
         }
-
         // New function: Check conflicts for temporary people (date overlap validation)
         function checkTemporaryPersonConflicts(roomId, startDate, endDate, excludePersonIndex = -1) {
             const room = occupancyData[roomId];
@@ -4455,30 +4456,48 @@
         }
 
         async function deletePersonFromSupabase(roomId, person) {
-            if (person.permanent || (person.role !== 'Visitor' && person.role !== 'Master student')) {
-                // Remove from permanent_occupants
-                const { error } = await supabase
-                    .from('permanent_occupants')
-                    .delete()
-                    .eq('room_id', roomId)
-                    .eq('name', person.name)
-                    .eq('role', person.role);
-                    
-                if (error) throw error;
-            } else {
-                // Remove from temporary_occupants
-                const { error } = await supabase
-                    .from('temporary_occupants')
-                    .delete()
-                    .eq('room_id', roomId)
-                    .eq('name', person.name)
-                    .eq('role', person.role)
-                    .eq('start_date', person.startDate)
-                    .eq('end_date', person.endDate);
-                    
-                if (error) throw error;
+            console.log('Attempting to delete person from Supabase:', { roomId, person });
+            
+            try {
+                if (person.permanent || (person.role !== 'Visitor' && person.role !== 'Master student')) {
+                    // Delete from permanent_occupants
+                    console.log('Deleting from permanent_occupants table');
+                    const { data, error } = await supabase
+                        .from('permanent_occupants')
+                        .delete()
+                        .eq('room_id', roomId)
+                        .eq('name', person.name)
+                        .eq('role', person.role);
+                        
+                    if (error) {
+                        console.error('Error deleting from permanent_occupants:', error);
+                        throw error;
+                    }
+                    console.log('Successfully deleted from permanent_occupants:', data);
+                } else {
+                    // Delete from temporary_occupants
+                    console.log('Deleting from temporary_occupants table');
+                    const { data, error } = await supabase
+                        .from('temporary_occupants')
+                        .delete()
+                        .eq('room_id', roomId)
+                        .eq('name', person.name)
+                        .eq('role', person.role)
+                        .eq('start_date', person.startDate)
+                        .eq('end_date', person.endDate);
+                        
+                    if (error) {
+                        console.error('Error deleting from temporary_occupants:', error);
+                        throw error;
+                    }
+                    console.log('Successfully deleted from temporary_occupants:', data);
+                }
+            } catch (error) {
+                console.error('Failed to delete person from Supabase:', error);
+                throw error;
             }
         }
+
 
         // Save room changes
         function saveRoomChanges() {
@@ -4595,124 +4614,145 @@
             try {
                 console.log('Starting Supabase save operation...');
                 
-                // If we're editing a person, first delete the old record
+                // If we're editing a person, handle the edit properly
                 if (editingPersonIndex >= 0 && originalPersonData) {
-                    console.log('Editing mode detected, deleting old record first:', originalPersonData);
+                    console.log('Edit mode detected - handling edit transaction');
                     
                     const roomId = document.getElementById('modalRoomId').value;
+                    const room = occupancyData[roomId];
+                    const updatedPerson = room.occupants[editingPersonIndex];
+                    
+                    console.log('Original person data:', originalPersonData);
+                    console.log('Updated person data:', updatedPerson);
+                    
+                    // Step 1: Delete the old record first
                     try {
                         await deletePersonFromSupabase(roomId, originalPersonData);
                         console.log('Successfully deleted old record');
                     } catch (error) {
-                        console.warn('Failed to delete old record:', error);
-                        // Continue with save operation even if delete fails
+                        console.error('Failed to delete old record:', error);
+                        // Don't continue if we can't delete the old record
+                        throw new Error(`Failed to delete old record: ${error.message}`);
                     }
-                }
-                
-                // Save all rooms that have been modified
-                for (const [roomId, roomData] of Object.entries(occupancyData)) {
-                    if (!roomData || !roomId) continue;
                     
-                    console.log(`Saving room ${roomId}:`, roomData);
+                    // Step 2: Insert the new record
+                    try {
+                        await savePersonToSupabase(roomId, room, updatedPerson);
+                        console.log('Successfully saved updated record');
+                    } catch (error) {
+                        console.error('Failed to save updated record:', error);
+                        // If save fails after delete, we have a problem - log it clearly
+                        throw new Error(`Updated record save failed after successful delete: ${error.message}`);
+                    }
                     
-                    // Save room settings
-                    await supabase
-                        .from('room_settings')
-                        .upsert({
-                            room_id: roomId,
-                            room_name: roomData.name,
-                            disabled: roomData.disabled || false,
-                            max_occupancy: roomData.maxOccupancy || 1,
-                            updated_at: new Date().toISOString()
-                        }, { onConflict: 'room_id' });
-                                                
-                    // Save occupants
-                    if (roomData.occupants && roomData.occupants.length > 0) {
-                        for (const person of roomData.occupants) {
-                            console.log(`Processing person:`, person);
-                            
-                            // Determine if this person should be saved as temporary or permanent
-                            const isTemporary = !person.permanent && 
-                                              (person.role === 'Visitor' || person.role === 'Master student') &&
-                                              person.startDate && person.endDate;
-                            
-                            console.log(`Will save as temporary:`, isTemporary);
-                            
-                            if (isTemporary) {
-                                // Save to temporary_occupants
-                                console.log(`Saving ${person.name} to temporary_occupants table`);
-                                
-                                const temporaryData = {
-                                    room_id: roomId,
-                                    room_name: roomData.name,
-                                    name: person.name,
-                                    role: person.role,
-                                    pi: person.pi || null,
-                                    start_date: person.startDate,
-                                    end_date: person.endDate,
-                                    updated_at: new Date().toISOString()
-                                };
-                                
-                                console.log(`Temporary data to save:`, temporaryData);
-                                
-                                // Use upsert instead of insert to handle potential duplicates
-                                const { data, error } = await supabase
-                                    .from('temporary_occupants')
-                                    .upsert(temporaryData, { 
-                                        onConflict: 'room_id,name,role,start_date,end_date',
-                                        ignoreDuplicates: false 
-                                    });
-                                    
-                                if (error) {
-                                    console.error(`Error saving temporary person ${person.name}:`, error);
-                                    throw error;
-                                } else {
-                                    console.log(`Successfully saved temporary person ${person.name}`, data);
-                                }
-                            } else {
-                                // Save to permanent_occupants
-                                console.log(`Saving ${person.name} to permanent_occupants table`);
-                                
-                                const permanentData = {
-                                    room_id: roomId,
-                                    room_name: roomData.name,
-                                    name: person.name,
-                                    role: person.role,
-                                    pi: person.pi || null,
-                                    disabled: roomData.disabled || false,
-                                    updated_at: new Date().toISOString()
-                                };
-                                
-                                console.log(`Permanent data to save:`, permanentData);
-                                
-                                // Use upsert instead of insert to handle the unique constraint
-                                const { data, error } = await supabase
-                                    .from('permanent_occupants')
-                                    .upsert(permanentData, { 
-                                        onConflict: 'room_id,name,role',
-                                        ignoreDuplicates: false 
-                                    });
-                                    
-                                if (error) {
-                                    console.error(`Error saving permanent person ${person.name}:`, error);
-                                    throw error;
-                                } else {
-                                    console.log(`Successfully saved permanent person ${person.name}`, data);
-                                }
+                    // Reset editing state only after successful save
+                    editingPersonIndex = -1;
+                    originalPersonData = null;
+                    console.log('Edit transaction completed successfully');
+                    
+                } else {
+                    // Normal save operation for all rooms
+                    for (const [roomId, roomData] of Object.entries(occupancyData)) {
+                        if (!roomData || !roomId) continue;
+                        
+                        console.log(`Saving room ${roomId}:`, roomData);
+                        
+                        // Save room settings
+                        await supabase
+                            .from('room_settings')
+                            .upsert({
+                                room_id: roomId,
+                                room_name: roomData.name,
+                                disabled: roomData.disabled || false,
+                                max_occupancy: roomData.maxOccupancy || 1,
+                                updated_at: new Date().toISOString()
+                            }, { onConflict: 'room_id' });
+                                                                
+                        // Save occupants
+                        if (roomData.occupants && roomData.occupants.length > 0) {
+                            for (const person of roomData.occupants) {
+                                await savePersonToSupabase(roomId, roomData, person);
                             }
                         }
                     }
                 }
                 
                 console.log('All data saved to Supabase successfully');
-                
-                // Reset editing state after successful save
-                editingPersonIndex = -1;
-                originalPersonData = null;
+                showNotification('Changes saved successfully!', 'success');
+                markAsSaved();
                 
             } catch (error) {
                 console.error('Supabase save error:', error);
+                showNotification(`Save failed: ${error.message}`, 'error');
                 throw error;
+            }
+        }
+
+        async function savePersonToSupabase(roomId, roomData, person) {
+            console.log(`Processing person for save:`, person);
+            
+            // Determine if this person should be saved as temporary or permanent
+            const isTemporary = !person.permanent && 
+                              (person.role === 'Visitor' || person.role === 'Master student') &&
+                              person.startDate && person.endDate;
+            
+            console.log(`Will save as temporary:`, isTemporary);
+            
+            if (isTemporary) {
+                // Save to temporary_occupants
+                console.log(`Saving ${person.name} to temporary_occupants table`);
+                
+                const temporaryData = {
+                    room_id: roomId,
+                    room_name: roomData.name,
+                    name: person.name,
+                    role: person.role,
+                    pi: person.pi || null,
+                    start_date: person.startDate,
+                    end_date: person.endDate,
+                    updated_at: new Date().toISOString()
+                };
+                
+                console.log(`Temporary data to save:`, temporaryData);
+                
+                // Use insert instead of upsert for new records to avoid conflicts
+                const { data, error } = await supabase
+                    .from('temporary_occupants')
+                    .insert(temporaryData);
+                    
+                if (error) {
+                    console.error(`Error saving temporary person ${person.name}:`, error);
+                    throw error;
+                } else {
+                    console.log(`Successfully saved temporary person ${person.name}`, data);
+                }
+            } else {
+                // Save to permanent_occupants
+                console.log(`Saving ${person.name} to permanent_occupants table`);
+                
+                const permanentData = {
+                    room_id: roomId,
+                    room_name: roomData.name,
+                    name: person.name,
+                    role: person.role,
+                    pi: person.pi || null,
+                    disabled: roomData.disabled || false,
+                    updated_at: new Date().toISOString()
+                };
+                
+                console.log(`Permanent data to save:`, permanentData);
+                
+                // Use insert instead of upsert for new records to avoid conflicts
+                const { data, error } = await supabase
+                    .from('permanent_occupants')
+                    .insert(permanentData);
+                    
+                if (error) {
+                    console.error(`Error saving permanent person ${person.name}:`, error);
+                    throw error;
+                } else {
+                    console.log(`Successfully saved permanent person ${person.name}`, data);
+                }
             }
         }
 
@@ -5076,14 +5116,24 @@
             const room = occupancyData[roomId];
             
             if (!room || !room.occupants || !room.occupants[index]) {
+                console.error('Cannot edit person - invalid room or index');
                 return;
             }
             
             const person = room.occupants[index];
             editingPersonIndex = index;
             
-            // IMPORTANT: Store the original person data for proper database updating
-            originalPersonData = { ...person }; // Deep copy of original data
+            // CRITICAL: Create a proper deep copy of original data with all properties
+            originalPersonData = {
+                name: person.name,
+                role: person.role,
+                permanent: person.permanent,
+                startDate: person.startDate || null,
+                endDate: person.endDate || null,
+                pi: person.pi || null
+            };
+            
+            console.log('Editing person - original data stored:', originalPersonData);
             
             // Populate the form with existing data
             document.getElementById('newPersonName').value = person.name;
