@@ -3439,9 +3439,9 @@
         // Global variables
         let isAdminMode = false;
         let occupancyData = {};
-        let selectedDate = new Date().toISOString().split('T')[0]; 
-        // Always today
+        let selectedDate = new Date().toISOString().split('T')[0]; // Always today
         let supabase = null;
+        let originalPersonData = null;
 
         // Add after other global variables
         let hasUnsavedChanges = false;
@@ -4150,6 +4150,7 @@
                 `;
             }).join('');
         }
+        
         function addOrEditPerson() {
             const name = document.getElementById('newPersonName')?.value?.trim();
             const role = document.getElementById('newPersonRole')?.value;
@@ -4184,7 +4185,7 @@
             const person = { 
                 name, 
                 role,
-                permanent: !isTemporaryRole  // Fix: Set permanent correctly from the start
+                permanent: !isTemporaryRole
             };
             
             // Handle time-limited roles (Visitors and Master students)
@@ -4195,53 +4196,18 @@
                 
                 // Validate required fields for temporary roles
                 if (!startDate || !endDate) {
-                    showNotification('Please provide start and end dates for this role', 'error');
+                    showNotification('Please enter both start and end dates for temporary roles', 'error');
                     return;
                 }
                 
                 if (!pi) {
-                    showNotification('Please provide a Principal Investigator name', 'error');
+                    showNotification('Please enter a Principal Investigator for temporary roles', 'error');
                     return;
                 }
                 
-                // Validate date logic
-                if (new Date(startDate) > new Date(endDate)) {
-                    showNotification('Start date cannot be after end date', 'error');
-                    return;
-                }
-                
-                // Set temporary person properties
                 person.startDate = startDate;
                 person.endDate = endDate;
                 person.pi = pi;
-                person.permanent = false; // Ensure this is explicitly set
-                
-                console.log('Creating temporary person:', person); // Debug log
-                
-                // Validation for temporary roles: Check for date overlap conflicts
-                const conflictResult = checkTemporaryPersonConflicts(roomId, startDate, endDate, editingPersonIndex);
-                if (conflictResult.hasConflict) {
-                    showNotification(
-                        `Cannot add person: Room will be at capacity during ${conflictResult.firstConflict} to ${conflictResult.lastConflict}. ` +
-                        `Consider different dates or wait until ${findNextAvailableSlot(roomId) || 'a spot opens up'}.`,
-                        'error'
-                    );
-                    return;
-                }
-            } else {
-                // Handle permanent roles
-                console.log('Creating permanent person:', person); // Debug log
-                
-                // Validation for permanent roles: Check if room will ever be full in the future
-                const futureFullPeriods = checkPermanentPersonConflicts(roomId, editingPersonIndex);
-                if (futureFullPeriods.hasConflict) {
-                    showNotification(
-                        `Cannot add permanent person: Room will be at capacity from ${futureFullPeriods.firstConflict} to ${futureFullPeriods.lastConflict} ` +
-                        `due to incoming temporary people. Consider adding as temporary person or wait until ${findNextAvailableSlot(roomId) || 'a spot opens up'}.`,
-                        'error'
-                    );
-                    return;
-                }
             }
             
             // Log the person object before saving to debug
@@ -4261,20 +4227,19 @@
             // Update the room data
             occupancyData[roomId] = room;
             
-            // CRITICAL: Save the data immediately
+            // CRITICAL: Save the data immediately with proper edit handling
             try {
                 console.log('Saving person:', person, 'to room:', roomId);
-                console.log('Person is temporary:', !person.permanent, 'Role:', person.role);
-                saveOccupancyData(); // This should save to both Supabase and localStorage
+                saveOccupancyData(); // This will now handle edits properly
             } catch (error) {
                 console.error('Failed to save person:', error);
                 showNotification('Error saving data', 'error');
-                return; // Don't update UI if save failed
+                return;
             }
             
             // Update the UI
             updateModalOccupantsList(room.occupants);
-            updateModalIncomingList(room.occupants, roomId);  // Fix: Update incoming people list
+            updateModalIncomingList(room.occupants, roomId);
             processOccupancyData();
             markAsChanged();
             
@@ -4399,50 +4364,64 @@
         // Remove person from room and database
         async function removePersonFromRoom(index) {
             const roomId = document.getElementById('modalRoomId').value;
+            const room = occupancyData[roomId];
             
-            if (!occupancyData[roomId] || !occupancyData[roomId].occupants) {
+            if (!room || !room.occupants || room.occupants.length <= index) {
                 return;
             }
             
-            const person = occupancyData[roomId].occupants[index];
-            markAsChanged();
-
+            const person = room.occupants[index];
+            
+            if (!confirm(`Are you sure you want to remove ${person.name} from this room?`)) {
+                return;
+            }
+            
             // Remove from database if using Supabase
             if (supabase && person) {
                 try {
-                    if (person.permanent || (person.role !== 'Visitor' && person.role !== 'Master student')) {
-                        // Remove from permanent_occupants
-                        await supabase
-                            .from('permanent_occupants')
-                            .delete()
-                            .eq('room_id', roomId)
-                            .eq('name', person.name)
-                            .eq('role', person.role);
-                    } else {
-                        // Remove from temporary_occupants
-                        await supabase
-                            .from('temporary_occupants')
-                            .delete()
-                            .eq('room_id', roomId)
-                            .eq('name', person.name)
-                            .eq('role', person.role)
-                            .eq('start_date', person.startDate)
-                            .eq('end_date', person.endDate);
-                    }
+                    await deletePersonFromSupabase(roomId, person);
+                    console.log(`Successfully deleted ${person.name} from Supabase`);
                 } catch (error) {
                     console.warn('Failed to remove from database:', error);
+                    showNotification('Warning: Failed to remove from database, but removed locally', 'warning');
                 }
             }
             
             // Remove from local data
             occupancyData[roomId].occupants.splice(index, 1);
             updateModalOccupantsList(occupancyData[roomId].occupants);
-            updateModalIncomingList(occupancyData[roomId].occupants, roomId);  // Fix: Update incoming people list
+            updateModalIncomingList(occupancyData[roomId].occupants, roomId);
             
             // Update display
             processOccupancyData();
             
             showNotification('Person removed');
+        }
+
+        async function deletePersonFromSupabase(roomId, person) {
+            if (person.permanent || (person.role !== 'Visitor' && person.role !== 'Master student')) {
+                // Remove from permanent_occupants
+                const { error } = await supabase
+                    .from('permanent_occupants')
+                    .delete()
+                    .eq('room_id', roomId)
+                    .eq('name', person.name)
+                    .eq('role', person.role);
+                    
+                if (error) throw error;
+            } else {
+                // Remove from temporary_occupants
+                const { error } = await supabase
+                    .from('temporary_occupants')
+                    .delete()
+                    .eq('room_id', roomId)
+                    .eq('name', person.name)
+                    .eq('role', person.role)
+                    .eq('start_date', person.startDate)
+                    .eq('end_date', person.endDate);
+                    
+                if (error) throw error;
+            }
         }
 
         // Save room changes
@@ -4519,6 +4498,20 @@
             try {
                 console.log('Starting Supabase save operation...');
                 
+                // If we're editing a person, first delete the old record
+                if (editingPersonIndex >= 0 && originalPersonData) {
+                    console.log('Editing mode detected, deleting old record first:', originalPersonData);
+                    
+                    const roomId = document.getElementById('modalRoomId').value;
+                    try {
+                        await deletePersonFromSupabase(roomId, originalPersonData);
+                        console.log('Successfully deleted old record');
+                    } catch (error) {
+                        console.warn('Failed to delete old record:', error);
+                        // Continue with save operation even if delete fails
+                    }
+                }
+                
                 // Save all rooms that have been modified
                 for (const [roomId, roomData] of Object.entries(occupancyData)) {
                     if (!roomData || !roomId) continue;
@@ -4535,13 +4528,11 @@
                             max_occupancy: roomData.maxOccupancy || 1,
                             updated_at: new Date().toISOString()
                         }, { onConflict: 'room_id' });
-                                            
+                                                
                     // Save occupants
                     if (roomData.occupants && roomData.occupants.length > 0) {
                         for (const person of roomData.occupants) {
                             console.log(`Processing person:`, person);
-                            console.log(`Person permanent flag:`, person.permanent);
-                            console.log(`Person role:`, person.role);
                             
                             // Determine if this person should be saved as temporary or permanent
                             const isTemporary = !person.permanent && 
@@ -4569,9 +4560,7 @@
                                 
                                 const { data, error } = await supabase
                                     .from('temporary_occupants')
-                                    .upsert(temporaryData, {
-                                        onConflict: 'room_id,name,role,start_date,end_date'
-                                    });
+                                    .insert(temporaryData); // Changed from upsert to insert for clarity
                                     
                                 if (error) {
                                     console.error(`Error saving temporary person ${person.name}:`, error);
@@ -4597,9 +4586,7 @@
                                 
                                 const { data, error } = await supabase
                                     .from('permanent_occupants')
-                                    .upsert(permanentData, {
-                                        onConflict: 'room_id,name,role'
-                                    });
+                                    .insert(permanentData); // Changed from upsert to insert for clarity
                                     
                                 if (error) {
                                     console.error(`Error saving permanent person ${person.name}:`, error);
@@ -4613,6 +4600,10 @@
                 }
                 
                 console.log('All data saved to Supabase successfully');
+                
+                // Reset editing state after successful save
+                editingPersonIndex = -1;
+                originalPersonData = null;
                 
             } catch (error) {
                 console.error('Supabase save error:', error);
@@ -4956,6 +4947,16 @@
             document.getElementById('newPersonEndDate').value = '';
             document.getElementById('newPersonPI').value = '';
             document.getElementById('timeLimitedFields').classList.remove('show');
+            
+            // Reset editing state
+            editingPersonIndex = -1;
+            originalPersonData = null;
+            
+            // Reset button text
+            const addEditBtn = document.getElementById('addEditPersonBtn');
+            if (addEditBtn) {
+                addEditBtn.textContent = 'Add Person';
+            }
         }
 
         // Function to edit an existing person
@@ -4969,6 +4970,9 @@
             
             const person = room.occupants[index];
             editingPersonIndex = index;
+            
+            // IMPORTANT: Store the original person data for proper database updating
+            originalPersonData = { ...person }; // Deep copy of original data
             
             // Populate the form with existing data
             document.getElementById('newPersonName').value = person.name;
@@ -4987,7 +4991,7 @@
             // Show time-limited fields if needed
             toggleTimeLimitedFields();
             
-            // Update the button text and function
+            // Update the button text
             const addEditBtn = document.getElementById('addEditPersonBtn');
             addEditBtn.textContent = 'Update Person';
             
