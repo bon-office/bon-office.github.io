@@ -4433,14 +4433,15 @@
                 return;
             }
             
-            // Remove from database if using Supabase
+            // Remove from database immediately
             if (supabase && person) {
                 try {
                     await deletePersonFromSupabase(roomId, person);
                     console.log(`Successfully deleted ${person.name} from Supabase`);
                 } catch (error) {
                     console.warn('Failed to remove from database:', error);
-                    showNotification('Warning: Failed to remove from database, but removed locally', 'warning');
+                    showNotification('Warning: Failed to remove from database', 'warning');
+                    return; // Don't remove locally if database deletion fails
                 }
             }
             
@@ -4448,9 +4449,10 @@
             occupancyData[roomId].occupants.splice(index, 1);
             updateModalOccupantsList(occupancyData[roomId].occupants);
             updateModalIncomingList(occupancyData[roomId].occupants, roomId);
-            
-            // Update display
             processOccupancyData();
+            
+            // NEW: Mark as changed to activate the button
+            markAsChanged();
             
             showNotification('Person removed');
         }
