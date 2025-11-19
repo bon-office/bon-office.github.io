@@ -3442,6 +3442,7 @@
         let selectedDate = new Date().toISOString().split('T')[0]; // Always today
         let supabase = null;
         let originalPersonData = null;
+        let currentEditingRoomId = null;  // Track which room is being edited
 
         // Add after other global variables
         let hasUnsavedChanges = false;
@@ -3841,6 +3842,7 @@
             
             modal.style.display = 'block';
 
+            currentEditingRoomId = roomId;
             markAsSaved(); // Reset the change tracking when opening modal
         }
 
@@ -4451,8 +4453,8 @@
             updateModalIncomingList(occupancyData[roomId].occupants, roomId);
             processOccupancyData();
             
-            // NEW: Mark as changed to activate the button
-            markAsChanged();
+            // Mark as changed to activate the button
+            //markAsChanged();
             
             showNotification('Person removed');
         }
@@ -4542,6 +4544,7 @@
                 modal.style.display = 'none';
             }
 
+            currentEditingRoomId = null;  // Clear the editing room
             processOccupancyData();
         }
 
@@ -4656,28 +4659,44 @@
                     console.log('Edit transaction completed successfully');
                     
                 } else {
-                    // Normal save operation for all rooms (use UPSERT to handle existing records)
-                    for (const [roomId, roomData] of Object.entries(occupancyData)) {
-                        if (!roomData || !roomId) continue;
-                        
-                        console.log(`Saving room ${roomId}:`, roomData);
-                        
-                        // Save room settings
-                        await supabase
-                            .from('room_settings')
-                            .upsert({
-                                room_id: roomId,
-                                room_name: roomData.name,
-                                disabled: roomData.disabled || false,
-                                max_occupancy: roomData.maxOccupancy || 1,
-                                updated_at: new Date().toISOString()
-                            }, { onConflict: 'room_id' });
-                                                                
-                        // Save occupants (using UPSERT for regular saves)
-                        if (roomData.occupants && roomData.occupants.length > 0) {
-                            for (const person of roomData.occupants) {
-                                await savePersonToSupabase(roomId, roomData, person, false); // false = regular save
-                            }
+                    // CRITICAL FIX: Only save the room that was actually edited
+                    const roomId = currentEditingRoomId;
+                    const roomData = occupancyData[roomId];
+                    
+                    if (!roomId || !roomData) {
+                        console.error('No room being edited');
+                        return;
+                    }
+                    
+                    console.log(`Saving only modified room ${roomId}:`, roomData);
+                    
+                    // Save room settings
+                    await supabase
+                        .from('room_settings')
+                        .upsert({
+                            room_id: roomId,
+                            room_name: roomData.name,
+                            disabled: roomData.disabled || false,
+                            max_occupancy: roomData.maxOccupancy || 1,
+                            updated_at: new Date().toISOString()
+                        }, { onConflict: 'room_id' });
+                    
+                    // First, delete ALL existing occupants for this room from database
+                    // This ensures removed people stay removed
+                    await supabase
+                        .from('permanent_occupants')
+                        .delete()
+                        .eq('room_id', roomId);
+                    
+                    await supabase
+                        .from('temporary_occupants')
+                        .delete()
+                        .eq('room_id', roomId);
+                    
+                    // Now insert only the current occupants
+                    if (roomData.occupants && roomData.occupants.length > 0) {
+                        for (const person of roomData.occupants) {
+                            await savePersonToSupabase(roomId, roomData, person, true); // true = use INSERT
                         }
                     }
                 }
@@ -4721,21 +4740,9 @@
                 
                 console.log(`Temporary data to save:`, temporaryData);
                 
-                let result;
-                if (isEditOperation) {
-                    // For edit operations, use INSERT (since we already deleted the old record)
-                    result = await supabase
-                        .from('temporary_occupants')
-                        .insert(temporaryData);
-                } else {
-                    // For regular saves, use UPSERT to handle existing records
-                    result = await supabase
-                        .from('temporary_occupants')
-                        .upsert(temporaryData, { 
-                            onConflict: 'room_id,name,role,start_date,end_date',
-                            ignoreDuplicates: false 
-                        });
-                }
+                const result = await supabase
+                    .from('temporary_occupants')
+                    .insert(temporaryData);
                 
                 const { data, error } = result;
                 if (error) {
@@ -4760,21 +4767,10 @@
                 
                 console.log(`Permanent data to save:`, permanentData);
                 
-                let result;
-                if (isEditOperation) {
-                    // For edit operations, use INSERT (since we already deleted the old record)
-                    result = await supabase
-                        .from('permanent_occupants')
-                        .insert(permanentData);
-                } else {
-                    // For regular saves, use UPSERT to handle existing records
-                    result = await supabase
-                        .from('permanent_occupants')
-                        .upsert(permanentData, { 
-                            onConflict: 'room_id,name,role',
-                            ignoreDuplicates: false 
-                        });
-                }
+                // Always use INSERT since we delete all occupants before inserting
+                const result = await supabase
+                    .from('permanent_occupants')
+                    .insert(permanentData);
                 
                 const { data, error } = result;
                 if (error) {
