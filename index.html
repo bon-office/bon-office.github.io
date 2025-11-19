@@ -3512,8 +3512,8 @@
             // Set up keyboard shortcuts
             setupKeyboardShortcuts();
             
-            // Auto-save setup
-            setupAutoSave();
+            // Auto-load setup
+            setupAutoLoad();
         }
 
         // Make sure this runs after DOM is completely loaded
@@ -4996,13 +4996,11 @@
             });
         }
 
-        // Setup auto-save
-        function setupAutoSave() {
+        // Setup auto-load to keep data synchronized across tabs
+        function setupAutoLoad() {
             setInterval(() => {
-                if (Object.keys(occupancyData).length > 0) {
-                    saveOccupancyData();
-                }
-            }, 30000); // Auto-save every 30 seconds
+                loadOccupancyData();
+            }, 30000); // Auto-load every 30 seconds to sync with database
         }
 
         // Update workspace styles based on admin mode
