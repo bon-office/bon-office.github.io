@@ -4461,45 +4461,58 @@
         }
 
         async function deletePersonFromSupabase(roomId, person) {
-            console.log('Attempting to delete person from Supabase:', { roomId, person });
+            console.log('Attempting to delete person:', person);
 
-            // PRIORITY: If we have an ID (which we should now), delete by ID. 
-            // This prevents string matching errors.
+            let deleteQuery;
+            const tableName = person.permanent || (person.role !== 'Visitor' && person.role !== 'Master student') 
+                ? 'permanent_occupants' 
+                : 'temporary_occupants';
+
+            // STRATEGY 1: Delete by ID (Best)
             if (person.id) {
-                const tableName = person.permanent ? 'permanent_occupants' : 'temporary_occupants';
-                console.log(`Deleting by ID from ${tableName}`);
-                const { error } = await supabase
+                console.log(`Strategy 1: Deleting by ID ${person.id} from ${tableName}`);
+                const { error, count } = await supabase
                     .from(tableName)
-                    .delete()
+                    .delete({ count: 'exact' })
                     .eq('id', person.id);
-                
+
                 if (error) throw error;
-                return;
+                if (count > 0) return; // Success
+                console.warn('Strategy 1 failed: ID not found (possibly changed during save).');
             }
 
-            // FALLBACK: Old logic (Name/Role matching) for legacy data or newly added (unsaved) items
-            if (person.permanent || (person.role !== 'Visitor' && person.role !== 'Master student')) {
-                // Remove from permanent_occupants
-                const { error } = await supabase
-                    .from('permanent_occupants')
-                    .delete()
-                    .eq('room_id', roomId)
-                    .eq('name', person.name)
-                    .eq('role', person.role);
-                    
-                if (error) throw error;
-            } else {
-                // Remove from temporary_occupants
-                const { error } = await supabase
-                    .from('temporary_occupants')
-                    .delete()
-                    .eq('room_id', roomId)
-                    .eq('name', person.name)
-                    .eq('role', person.role)
+            // STRATEGY 2: Strict Fallback (Name + Role + Dates)
+            console.log(`Strategy 2: Deleting by Strict Match from ${tableName}`);
+            deleteQuery = supabase.from(tableName).delete({ count: 'exact' })
+                .eq('room_id', roomId)
+                .eq('name', person.name)
+                .eq('role', person.role);
+
+            if (tableName === 'temporary_occupants') {
+                deleteQuery = deleteQuery
                     .eq('start_date', person.startDate)
                     .eq('end_date', person.endDate);
-                    
-                if (error) throw error;
+            }
+
+            const { error: err2, count: count2 } = await deleteQuery;
+            if (err2) throw err2;
+            if (count2 > 0) return; // Success
+
+            // STRATEGY 3: Fuzzy Fallback (Just Name + Room)
+            // This catches cases where date formats might slightly differ or ID is stale
+            console.warn('Strategy 2 failed. Attempting Strategy 3 (Fuzzy Name Match).');
+            const { error: err3, count: count3 } = await supabase
+                .from(tableName)
+                .delete({ count: 'exact' })
+                .eq('room_id', roomId)
+                .eq('name', person.name);
+
+            if (err3) throw err3;
+            
+            if (count3 === 0) {
+                console.error("All delete strategies failed. The database row might not exist or data is mismatched.");
+                // We do NOT throw here, because if the row doesn't exist, 
+                // our local removal is effectively correct.
             }
         }
 
@@ -4623,86 +4636,49 @@
             try {
                 console.log('Starting Supabase save operation...');
                 
-                // If we're editing a person, handle the edit properly
-                if (editingPersonIndex >= 0 && originalPersonData) {
-                    console.log('Edit mode detected - handling edit transaction');
-                    
-                    const roomId = document.getElementById('modalRoomId').value;
-                    const room = occupancyData[roomId];
-                    const updatedPerson = room.occupants[editingPersonIndex];
-                    
-                    console.log('Original person data:', originalPersonData);
-                    console.log('Updated person data:', updatedPerson);
-                    
-                    // Step 1: Delete the old record first
-                    try {
-                        await deletePersonFromSupabase(roomId, originalPersonData);
-                        console.log('Successfully deleted old record');
-                    } catch (error) {
-                        console.error('Failed to delete old record:', error);
-                        // Don't continue if we can't delete the old record
-                        throw new Error(`Failed to delete old record: ${error.message}`);
-                    }
-                    
-                    // Step 2: Insert the new record (using INSERT since we deleted the old one)
-                    try {
-                        await savePersonToSupabase(roomId, room, updatedPerson, true); // true = isEditOperation
-                        console.log('Successfully saved updated record');
-                    } catch (error) {
-                        console.error('Failed to save updated record:', error);
-                        // If save fails after delete, we have a problem - log it clearly
-                        throw new Error(`Updated record save failed after successful delete: ${error.message}`);
-                    }
-                    
-                    // Reset editing state only after successful save
-                    editingPersonIndex = -1;
-                    originalPersonData = null;
-                    console.log('Edit transaction completed successfully');
-                    
-                } else {
-                    // CRITICAL FIX: Only save the room that was actually edited
-                    const roomId = currentEditingRoomId;
-                    const roomData = occupancyData[roomId];
-                    
-                    if (!roomId || !roomData) {
-                        console.error('No room being edited');
-                        return;
-                    }
-                    
-                    console.log(`Saving only modified room ${roomId}:`, roomData);
-                    
-                    // Save room settings
-                    await supabase
-                        .from('room_settings')
-                        .upsert({
-                            room_id: roomId,
-                            room_name: roomData.name,
-                            disabled: roomData.disabled || false,
-                            max_occupancy: roomData.maxOccupancy || 1,
-                            updated_at: new Date().toISOString()
-                        }, { onConflict: 'room_id' });
-                    
-                    // First, delete ALL existing occupants for this room from database
-                    // This ensures removed people stay removed
-                    await supabase
-                        .from('permanent_occupants')
-                        .delete()
-                        .eq('room_id', roomId);
-                    
-                    await supabase
-                        .from('temporary_occupants')
-                        .delete()
-                        .eq('room_id', roomId);
-                    
-                    // Now insert only the current occupants
-                    if (roomData.occupants && roomData.occupants.length > 0) {
-                        for (const person of roomData.occupants) {
-                            await savePersonToSupabase(roomId, roomData, person, true); // true = use INSERT
-                        }
+                // 1. Identify the room being edited
+                // Use currentEditingRoomId if available, otherwise fallback to modal value
+                const roomId = currentEditingRoomId || document.getElementById('modalRoomId').value;
+                const roomData = occupancyData[roomId];
+                
+                if (!roomId || !roomData) {
+                    console.error('No room being edited or room data missing');
+                    return;
+                }
+                
+                console.log(`Saving room ${roomId}:`, roomData);
+                
+                // 2. Save room settings (Upsert)
+                await supabase
+                    .from('room_settings')
+                    .upsert({
+                        room_id: roomId,
+                        room_name: roomData.name,
+                        disabled: roomData.disabled || false,
+                        max_occupancy: roomData.maxOccupancy || 1,
+                        updated_at: new Date().toISOString()
+                    }, { onConflict: 'room_id' });
+                
+                // 3. DELETE ALL existing occupants for this room
+                // We do this to ensure clean state and handle removals that happened via UI
+                await supabase.from('permanent_occupants').delete().eq('room_id', roomId);
+                await supabase.from('temporary_occupants').delete().eq('room_id', roomId);
+                
+                // 4. RE-INSERT current occupants
+                if (roomData.occupants && roomData.occupants.length > 0) {
+                    for (const person of roomData.occupants) {
+                        // We pass 'false' for isEditOperation because we just wiped the table
+                        // so everything is technically a new insert for this room
+                        await savePersonToSupabase(roomId, roomData, person, false); 
                     }
                 }
                 
-                console.log('All data saved to Supabase successfully');
+                console.log('Save complete. Reloading data to sync new IDs...');
+                
+                // 5. CRITICAL FIX: Force reload from Supabase immediately.
+                // This ensures our local occupancyData gets the NEW IDs that Supabase just generated.
+                await loadOccupancyData();
+                
                 showNotification('Changes saved successfully!', 'success');
                 markAsSaved();
                 
