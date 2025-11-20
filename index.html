@@ -4443,62 +4443,63 @@
                 } catch (error) {
                     console.warn('Failed to remove from database:', error);
                     showNotification('Warning: Failed to remove from database', 'warning');
-                    return; // Don't remove locally if database deletion fails
+                    return; 
                 }
             }
             
             // Remove from local data
             occupancyData[roomId].occupants.splice(index, 1);
+            
+            // NEW: Save to local storage immediately to keep backup in sync
+            saveToLocalStorage();
+
             updateModalOccupantsList(occupancyData[roomId].occupants);
             updateModalIncomingList(occupancyData[roomId].occupants, roomId);
             processOccupancyData();
-            
-            // Mark as changed to activate the button
-            //markAsChanged();
             
             showNotification('Person removed');
         }
 
         async function deletePersonFromSupabase(roomId, person) {
             console.log('Attempting to delete person from Supabase:', { roomId, person });
-            
-            try {
-                if (person.permanent || (person.role !== 'Visitor' && person.role !== 'Master student')) {
-                    // Delete from permanent_occupants
-                    console.log('Deleting from permanent_occupants table');
-                    const { data, error } = await supabase
-                        .from('permanent_occupants')
-                        .delete()
-                        .eq('room_id', roomId)
-                        .eq('name', person.name)
-                        .eq('role', person.role);
-                        
-                    if (error) {
-                        console.error('Error deleting from permanent_occupants:', error);
-                        throw error;
-                    }
-                    console.log('Successfully deleted from permanent_occupants:', data);
-                } else {
-                    // Delete from temporary_occupants
-                    console.log('Deleting from temporary_occupants table');
-                    const { data, error } = await supabase
-                        .from('temporary_occupants')
-                        .delete()
-                        .eq('room_id', roomId)
-                        .eq('name', person.name)
-                        .eq('role', person.role)
-                        .eq('start_date', person.startDate)
-                        .eq('end_date', person.endDate);
-                        
-                    if (error) {
-                        console.error('Error deleting from temporary_occupants:', error);
-                        throw error;
-                    }
-                    console.log('Successfully deleted from temporary_occupants:', data);
-                }
-            } catch (error) {
-                console.error('Failed to delete person from Supabase:', error);
-                throw error;
+
+            // PRIORITY: If we have an ID (which we should now), delete by ID. 
+            // This prevents string matching errors.
+            if (person.id) {
+                const tableName = person.permanent ? 'permanent_occupants' : 'temporary_occupants';
+                console.log(`Deleting by ID from ${tableName}`);
+                const { error } = await supabase
+                    .from(tableName)
+                    .delete()
+                    .eq('id', person.id);
+                
+                if (error) throw error;
+                return;
+            }
+
+            // FALLBACK: Old logic (Name/Role matching) for legacy data or newly added (unsaved) items
+            if (person.permanent || (person.role !== 'Visitor' && person.role !== 'Master student')) {
+                // Remove from permanent_occupants
+                const { error } = await supabase
+                    .from('permanent_occupants')
+                    .delete()
+                    .eq('room_id', roomId)
+                    .eq('name', person.name)
+                    .eq('role', person.role);
+                    
+                if (error) throw error;
+            } else {
+                // Remove from temporary_occupants
+                const { error } = await supabase
+                    .from('temporary_occupants')
+                    .delete()
+                    .eq('room_id', roomId)
+                    .eq('name', person.name)
+                    .eq('role', person.role)
+                    .eq('start_date', person.startDate)
+                    .eq('end_date', person.endDate);
+                    
+                if (error) throw error;
             }
         }
 
@@ -4907,11 +4908,12 @@
                         name: roomSetting?.room_name || person.room_name || person.room_id,
                         occupants: [],
                         disabled: roomSetting?.disabled || person.disabled || false,
-                        maxOccupancy: roomSetting?.max_occupancy || 1 // Add this line
+                        maxOccupancy: roomSetting?.max_occupancy || 1 
                     };
                 }
                 
                 merged[person.room_id].occupants.push({
+                    id: person.id, // <--- ADDED THIS
                     name: person.name,
                     role: person.role,
                     pi: person.pi,
@@ -4927,11 +4929,12 @@
                         name: roomSetting?.room_name || person.room_name || person.room_id,
                         occupants: [],
                         disabled: roomSetting?.disabled || false,
-                        maxOccupancy: roomSetting?.max_occupancy || 1 // Add this line
+                        maxOccupancy: roomSetting?.max_occupancy || 1 
                     };
                 }
                 
                 merged[person.room_id].occupants.push({
+                    id: person.id, // <--- ADDED THIS
                     name: person.name,
                     role: person.role,
                     pi: person.pi,
@@ -4948,7 +4951,7 @@
                         name: roomSetting.room_name,
                         occupants: [],
                         disabled: roomSetting.disabled,
-                        maxOccupancy: roomSetting.max_occupancy || 1 // Add this line
+                        maxOccupancy: roomSetting.max_occupancy || 1 
                     };
                 }
             });
