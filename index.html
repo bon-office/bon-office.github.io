@@ -3621,9 +3621,15 @@
         // Load occupancy data from new table structure
         async function loadOccupancyData() {
             if (supabase) {
-                await loadFromSupabase();
+                try {
+                    console.log('Fetching fresh data from Supabase...');
+                    await loadFromSupabase();
+                } catch (err) {
+                    console.error('Supabase load failed:', err);
+                    showNotification('Could not load data from server', 'error');
+                }
             } else {
-                loadFromLocalStorage();
+                console.warn('Supabase not active. App is in read-only mode.');
             }
         }
 
@@ -4461,59 +4467,39 @@
         }
 
         async function deletePersonFromSupabase(roomId, person) {
-            console.log('Attempting to delete person:', person);
+            console.log('Deleting person:', person);
 
-            let deleteQuery;
-            const tableName = person.permanent || (person.role !== 'Visitor' && person.role !== 'Master student') 
-                ? 'permanent_occupants' 
-                : 'temporary_occupants';
+            const tableName = person.permanent ? 'permanent_occupants' : 'temporary_occupants';
 
-            // STRATEGY 1: Delete by ID (Best)
+            // Attempt 1: Delete by ID (Precision delete)
             if (person.id) {
-                console.log(`Strategy 1: Deleting by ID ${person.id} from ${tableName}`);
                 const { error, count } = await supabase
                     .from(tableName)
                     .delete({ count: 'exact' })
                     .eq('id', person.id);
-
-                if (error) throw error;
-                if (count > 0) return; // Success
-                console.warn('Strategy 1 failed: ID not found (possibly changed during save).');
+                    
+                if (!error && count > 0) {
+                    console.log('Deleted by ID successfully');
+                    return;
+                }
             }
 
-            // STRATEGY 2: Strict Fallback (Name + Role + Dates)
-            console.log(`Strategy 2: Deleting by Strict Match from ${tableName}`);
-            deleteQuery = supabase.from(tableName).delete({ count: 'exact' })
-                .eq('room_id', roomId)
-                .eq('name', person.name)
-                .eq('role', person.role);
-
-            if (tableName === 'temporary_occupants') {
-                deleteQuery = deleteQuery
-                    .eq('start_date', person.startDate)
-                    .eq('end_date', person.endDate);
-            }
-
-            const { error: err2, count: count2 } = await deleteQuery;
-            if (err2) throw err2;
-            if (count2 > 0) return; // Success
-
-            // STRATEGY 3: Fuzzy Fallback (Just Name + Room)
-            // This catches cases where date formats might slightly differ or ID is stale
-            console.warn('Strategy 2 failed. Attempting Strategy 3 (Fuzzy Name Match).');
-            const { error: err3, count: count3 } = await supabase
-                .from(tableName)
-                .delete({ count: 'exact' })
+            // Attempt 2: Fallback (Name + Room match)
+            // If ID failed (or didn't exist), delete based on name and room
+            console.warn('ID delete failed or no ID. Trying Name match...');
+            
+            let query = supabase.from(tableName)
+                .delete()
                 .eq('room_id', roomId)
                 .eq('name', person.name);
-
-            if (err3) throw err3;
-            
-            if (count3 === 0) {
-                console.error("All delete strategies failed. The database row might not exist or data is mismatched.");
-                // We do NOT throw here, because if the row doesn't exist, 
-                // our local removal is effectively correct.
+                
+            // For temporary people, be more specific to avoid deleting same-name future entries
+            if (!person.permanent && person.startDate) {
+                 query = query.eq('start_date', person.startDate);
             }
+
+            const { error } = await query;
+            if (error) throw error;
         }
 
 
@@ -4598,9 +4584,9 @@
 
         // Keep localStorage as backup (simplified)
         function saveToLocalStorage() {
-            const dataKey = `occupancy_data_backup`;
-            localStorage.setItem(dataKey, JSON.stringify(occupancyData));
-            console.log('Data saved to localStorage with key:', dataKey);
+            // Intentionally empty to prevent caching "Zombie" data.
+            // We rely 100% on Supabase now.
+            console.log('Skipping local storage save to ensure Supabase consistency.');
         }
 
 
@@ -4632,60 +4618,56 @@
         }
 
         // Save to new Supabase structure with improved debugging
+        // REPLACEMENT 2: Save and immediately Sync IDs
         async function saveToSupabase() {
             try {
-                console.log('Starting Supabase save operation...');
-                
-                // 1. Identify the room being edited
-                // Use currentEditingRoomId if available, otherwise fallback to modal value
                 const roomId = currentEditingRoomId || document.getElementById('modalRoomId').value;
                 const roomData = occupancyData[roomId];
                 
-                if (!roomId || !roomData) {
-                    console.error('No room being edited or room data missing');
-                    return;
-                }
+                if (!roomId || !roomData) return;
                 
-                console.log(`Saving room ${roomId}:`, roomData);
+                showNotification('Saving...', 'success');
+
+                // 1. Update Room Settings
+                await supabase.from('room_settings').upsert({
+                    room_id: roomId,
+                    room_name: roomData.name,
+                    disabled: roomData.disabled || false,
+                    max_occupancy: roomData.maxOccupancy || 1,
+                    updated_at: new Date().toISOString()
+                }, { onConflict: 'room_id' });
                 
-                // 2. Save room settings (Upsert)
-                await supabase
-                    .from('room_settings')
-                    .upsert({
-                        room_id: roomId,
-                        room_name: roomData.name,
-                        disabled: roomData.disabled || false,
-                        max_occupancy: roomData.maxOccupancy || 1,
-                        updated_at: new Date().toISOString()
-                    }, { onConflict: 'room_id' });
-                
-                // 3. DELETE ALL existing occupants for this room
-                // We do this to ensure clean state and handle removals that happened via UI
+                // 2. CLEAR the room in DB (Nuclear option)
                 await supabase.from('permanent_occupants').delete().eq('room_id', roomId);
                 await supabase.from('temporary_occupants').delete().eq('room_id', roomId);
                 
-                // 4. RE-INSERT current occupants
+                // 3. RE-INSERT everyone (This generates NEW IDs)
                 if (roomData.occupants && roomData.occupants.length > 0) {
                     for (const person of roomData.occupants) {
-                        // We pass 'false' for isEditOperation because we just wiped the table
-                        // so everything is technically a new insert for this room
                         await savePersonToSupabase(roomId, roomData, person, false); 
                     }
                 }
                 
-                console.log('Save complete. Reloading data to sync new IDs...');
+                // 4. CRITICAL STEP: Fetch the NEW IDs immediately
+                // This prevents the "Zombie" issue where browser holds old IDs
+                await loadFromSupabase(); 
+
+                // 5. Re-render the modal so the "Remove" buttons now have the correct IDs
+                if (roomId) {
+                     // We need to find the fresh data for this room
+                     const freshRoomData = occupancyData[roomId];
+                     if (freshRoomData) {
+                         updateModalOccupantsList(freshRoomData.occupants);
+                         updateModalIncomingList(freshRoomData.occupants, roomId);
+                     }
+                }
                 
-                // 5. CRITICAL FIX: Force reload from Supabase immediately.
-                // This ensures our local occupancyData gets the NEW IDs that Supabase just generated.
-                await loadOccupancyData();
-                
-                showNotification('Changes saved successfully!', 'success');
+                showNotification('Saved successfully!', 'success');
                 markAsSaved();
                 
             } catch (error) {
                 console.error('Supabase save error:', error);
                 showNotification(`Save failed: ${error.message}`, 'error');
-                throw error;
             }
         }
 
