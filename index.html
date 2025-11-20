@@ -4440,30 +4440,29 @@
             if (!confirm(`Are you sure you want to remove ${person.name} from this room?`)) {
                 return;
             }
-            
-            // Remove from database immediately
-            if (supabase && person) {
-                try {
-                    await deletePersonFromSupabase(roomId, person);
-                    console.log(`Successfully deleted ${person.name} from Supabase`);
-                } catch (error) {
-                    console.warn('Failed to remove from database:', error);
-                    showNotification('Warning: Failed to remove from database', 'warning');
-                    return; 
-                }
-            }
-            
-            // Remove from local data
-            occupancyData[roomId].occupants.splice(index, 1);
-            
-            // NEW: Save to local storage immediately to keep backup in sync
-            saveToLocalStorage();
 
-            updateModalOccupantsList(occupancyData[roomId].occupants);
-            updateModalIncomingList(occupancyData[roomId].occupants, roomId);
+            // 1. Modify the LOCAL data first (Optimistic update)
+            // We remove the person from our local memory immediately.
+            room.occupants.splice(index, 1);
+            
+            // 2. Update the UI immediately so it feels responsive
+            updateModalOccupantsList(room.occupants);
+            updateModalIncomingList(room.occupants, roomId);
             processOccupancyData();
             
-            showNotification('Person removed');
+            // 3. Trigger the "Nuclear" Save
+            // Instead of trying to delete a specific ID (which might be stale),
+            // we execute the same logic as 'Add Person': wipe the room in DB 
+            // and re-insert the survivors.
+            try {
+                showNotification('Removing...', 'success');
+                await saveToSupabase(); // This handles the DB sync and ID refresh
+                // Note: saveToSupabase already calls loadFromSupabase and showNotification
+            } catch (error) {
+                console.error('Failed to remove:', error);
+                showNotification('Error syncing with database. Reloading...', 'error');
+                await loadOccupancyData(); // Revert if it failed
+            }
         }
 
         async function deletePersonFromSupabase(roomId, person) {
