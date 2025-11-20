@@ -3636,38 +3636,32 @@
         // Load from new Supabase structure
         async function loadFromSupabase() {
             try {
-                // Always use today's date
                 const today = new Date().toISOString().split('T')[0];
                 
-                // Load all permanent occupants (always visible)
+                // UPDATED TABLE NAME
                 const { data: permanentData, error: permanentError } = await supabase
-                    .from('permanent_occupants')
+                    .from('permanent_occupants_v2') 
                     .select('*');
                     
-                // Load ALL temporary occupants (not filtered by date)
-                // We'll filter current vs incoming in JavaScript
+                // UPDATED TABLE NAME
                 const { data: temporaryData, error: temporaryError } = await supabase
-                    .from('temporary_occupants')
+                    .from('temporary_occupants_v2')
                     .select('*');
                     
-                // Load room settings
                 const { data: roomSettings, error: roomError } = await supabase
                     .from('room_settings')
                     .select('*');
                     
                 if (permanentError || temporaryError || roomError) {
                     console.warn('Error loading from Supabase:', { permanentError, temporaryError, roomError });
-                    loadFromLocalStorage();
                     return;
                 }
                 
-                // Merge the data
                 occupancyData = mergeOccupancyData(permanentData || [], temporaryData || [], roomSettings || []);
                 processOccupancyData();
                 
             } catch (error) {
                 console.warn('Supabase load error:', error);
-                loadFromLocalStorage();
             }
         }
 
@@ -4468,7 +4462,7 @@
         async function deletePersonFromSupabase(roomId, person) {
             console.log('Deleting person:', person);
 
-            const tableName = person.permanent ? 'permanent_occupants' : 'temporary_occupants';
+            const tableName = person.permanent ? 'permanent_occupants_v2' : 'temporary_occupants_v2';
 
             // Attempt 1: Delete by ID (Precision delete)
             if (person.id) {
@@ -4594,7 +4588,7 @@
             if (person.permanent || (person.role !== 'Visitor' && person.role !== 'Master student')) {
                 // Remove from permanent_occupants
                 const { error } = await supabase
-                    .from('permanent_occupants')
+                    .from('permanent_occupants_v2')
                     .delete()
                     .eq('room_id', roomId)
                     .eq('name', person.name)
@@ -4604,7 +4598,7 @@
             } else {
                 // Remove from temporary_occupants
                 const { error } = await supabase
-                    .from('temporary_occupants')
+                    .from('temporary_occupants_v2')
                     .delete()
                     .eq('room_id', roomId)
                     .eq('name', person.name)
@@ -4627,7 +4621,6 @@
                 
                 showNotification('Saving...', 'success');
 
-                // 1. Update Room Settings
                 await supabase.from('room_settings').upsert({
                     room_id: roomId,
                     room_name: roomData.name,
@@ -4636,24 +4629,19 @@
                     updated_at: new Date().toISOString()
                 }, { onConflict: 'room_id' });
                 
-                // 2. CLEAR the room in DB (Nuclear option)
-                await supabase.from('permanent_occupants').delete().eq('room_id', roomId);
-                await supabase.from('temporary_occupants').delete().eq('room_id', roomId);
+                // UPDATED TABLE NAMES
+                await supabase.from('permanent_occupants_v2').delete().eq('room_id', roomId);
+                await supabase.from('temporary_occupants_v2').delete().eq('room_id', roomId);
                 
-                // 3. RE-INSERT everyone (This generates NEW IDs)
                 if (roomData.occupants && roomData.occupants.length > 0) {
                     for (const person of roomData.occupants) {
                         await savePersonToSupabase(roomId, roomData, person, false); 
                     }
                 }
                 
-                // 4. CRITICAL STEP: Fetch the NEW IDs immediately
-                // This prevents the "Zombie" issue where browser holds old IDs
                 await loadFromSupabase(); 
 
-                // 5. Re-render the modal so the "Remove" buttons now have the correct IDs
                 if (roomId) {
-                     // We need to find the fresh data for this room
                      const freshRoomData = occupancyData[roomId];
                      if (freshRoomData) {
                          updateModalOccupantsList(freshRoomData.occupants);
@@ -4699,7 +4687,7 @@
                 console.log(`Temporary data to save:`, temporaryData);
                 
                 const result = await supabase
-                    .from('temporary_occupants')
+                    .from('temporary_occupants_v2')
                     .insert(temporaryData);
                 
                 const { data, error } = result;
@@ -4727,7 +4715,7 @@
                 
                 // Always use INSERT since we delete all occupants before inserting
                 const result = await supabase
-                    .from('permanent_occupants')
+                    .from('permanent_occupants_v2')
                     .insert(permanentData);
                 
                 const { data, error } = result;
