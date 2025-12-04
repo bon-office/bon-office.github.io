@@ -3984,7 +3984,7 @@
                                 <div class="modal-buttons">
                                     <button class="btn btn-secondary" onclick="closeWorkspaceModal()">Cancel</button>
                                     <button class="btn btn-primary" id="addEditPersonBtn" onclick="addOrEditPerson()">Add Person</button>
-                                    <button class="btn btn-primary" id="saveChangesBtn" onclick="await saveRoomChanges()" disabled>Save Changes</button>
+                                    <button class="btn btn-primary" id="saveChangesBtn" onclick="saveRoomChanges()" disabled>Save Changes</button>
                                 </div>
                             </div>
                         </div>
@@ -4498,7 +4498,7 @@
 
         // Save room changes
         async function saveRoomChanges() {
-            
+
             const roomId = document.getElementById('modalRoomId').value;
             const roomName = document.getElementById('modalRoomName').value;
             const maxOccupancy = parseInt(document.getElementById('maxOccupancyInput').value) || 1;
