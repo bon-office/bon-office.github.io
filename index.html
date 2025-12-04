@@ -4498,9 +4498,7 @@
 
         // Save room changes
         async function saveRoomChanges() {
-            // CRITICAL: Reload data from database first to avoid overwriting changes from other tabs
-            await loadOccupancyData();
-
+            
             const roomId = document.getElementById('modalRoomId').value;
             const roomName = document.getElementById('modalRoomName').value;
             const maxOccupancy = parseInt(document.getElementById('maxOccupancyInput').value) || 1;
@@ -4519,11 +4517,15 @@
             if (isAdminMode) {
                 occupancyData[roomId].name = roomName;
                 occupancyData[roomId].maxOccupancy = maxOccupancy;
-                // Keep existing disabled state and occupants
+                // The 'disabled' status is already updated in occupancyData by the toggle button listener
             }
             
             // Save to both Supabase and localStorage
             await saveOccupancyData();
+            
+            // Now we can reload to ensure we have the server-side timestamp and sync
+            await loadOccupancyData(); 
+            
             processOccupancyData();
             markAsSaved();
             closeWorkspaceModal();
